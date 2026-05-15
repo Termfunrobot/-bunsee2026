@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>บัญชีรายรับ-รายจ่าย</title>
+    
+    <!-- Meta Tags สำหรับ Mobile App -->
+    <meta name="theme-color" content="#3498db">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Smart Wallet">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+    
+    <!-- แท็ก Manifest (จะถูกสร้างอัตโนมัติด้วย JavaScript ด้านล่าง) -->
+    <link rel="manifest" id="manifest-link">
+
+    <!-- โหลด Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push, remove, update, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYUn7UxRlagh13oawvD4aneFQTXcZtobM",
+            authDomain: "bansee-1cd1f.firebaseapp.com",
+            databaseURL: "https://bansee-1cd1f-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "bansee-1cd1f",
+            storageBucket: "bansee-1cd1f.firebasestorage.app",
+            messagingSenderId: "210860668686",
+            appId: "1:210860668686:web:1cd17235be070516c4095f",
+            measurementId: "G-Q3E3PYC5GW"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        // นำฟังก์ชันลง Window เพื่อให้เรียกใช้ได้
+        window.db = db;
+        window.ref = ref;
+        window.onValue = onValue;
+        window.push = push;
+        window.remove = remove;
+        window.update = update;
+        window.set = set;
+        window.auth = auth;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.signOut = signOut;
+        window.GoogleAuthProvider = GoogleAuthProvider;
+        window.signInWithPopup = signInWithPopup;
+
+        window.initAuthListener();
+    </script>
+
+    <style>
+        :root {
+            /* Themes */
+            --bg-color: #f0f2f5; --container-bg: #ffffff; --text-main: #333333; --text-muted: #666666;
+            --primary: #3498db; --primary-hover: #2980b9; --plus: #2ecc71; --minus: #e74c3c;
+            --border: #dddddd; --item-bg: #ffffff; --item-shadow: rgba(0,0,0,0.05); --input-bg: #ffffff;
+            --warning: #f39c12; --cancel: #95a5a6; --cancel-hover: #7f8c8d;
+        }
+        [data-theme="dark"] { --bg-color: #121212; --container-bg: #1e1e1e; --text-main: #ffffff; --text-muted: #aaaaaa; --primary: #bb86fc; --primary-hover: #9965f4; --plus: #03dac6; --minus: #cf6679; --border: #333333; --item-bg: #2c2c2c; --item-shadow: rgba(0,0,0,0.3); --input-bg: #2c2c2c; }
+        [data-theme="pastel"] { --bg-color: #fdf6fd; --container-bg: #ffffff; --text-main: #5d576b; --text-muted: #9a8f97; --primary: #f4a261; --primary-hover: #e76f51; --plus: #2a9d8f; --minus: #e63946; --border: #f1e3f3; --item-bg: #fffafb; --item-shadow: rgba(0,0,0,0.04); --input-bg: #ffffff; }
+        [data-theme="nature"] { --bg-color: #e9edc9; --container-bg: #fefae0; --text-main: #283618; --text-muted: #606c38; --primary: #606c38; --primary-hover: #283618; --plus: #52796f; --minus: #bc4749; --border: #ccd5ae; --item-bg: #faedcd; --item-shadow: rgba(0,0,0,0.06); --input-bg: #fefae0; }
+        [data-theme="ocean"] { --bg-color: #caf0f8; --container-bg: #ffffff; --text-main: #03045e; --text-muted: #0077b6; --primary: #00b4d8; --primary-hover: #0096c7; --plus: #02c39a; --minus: #ef233c; --border: #ade8f4; --item-bg: #f0f8ff; --item-shadow: rgba(0,119,182,0.1); --input-bg: #ffffff; }
+        [data-theme="sunset"] { --bg-color: #ffedda; --container-bg: #ffffff; --text-main: #d35400; --text-muted: #e67e22; --primary: #e74c3c; --primary-hover: #c0392b; --plus: #27ae60; --minus: #c0392b; --border: #fadbd8; --item-bg: #fdf2e9; --item-shadow: rgba(231,76,60,0.1); --input-bg: #ffffff; }
+        [data-theme="berry"] { --bg-color: #fce4ec; --container-bg: #ffffff; --text-main: #4a148c; --text-muted: #7b1fa2; --primary: #e91e63; --primary-hover: #c2185b; --plus: #00897b; --minus: #d81b60; --border: #f8bbd0; --item-bg: #f3e5f5; --item-shadow: rgba(233,30,99,0.1); --input-bg: #ffffff; }
+        [data-theme="coffee"] { --bg-color: #efebe9; --container-bg: #ffffff; --text-main: #4e342e; --text-muted: #6d4c41; --primary: #795548; --primary-hover: #5d4037; --plus: #388e3c; --minus: #d32f2f; --border: #d7ccc8; --item-bg: #f5f5f5; --item-shadow: rgba(121,85,72,0.1); --input-bg: #ffffff; }
+        [data-theme="cyber"] { --bg-color: #0d0e15; --container-bg: #1a1c29; --text-main: #00ffcc; --text-muted: #a8b2d1; --primary: #ff007f; --primary-hover: #cc0066; --plus: #39ff14; --minus: #ff007f; --border: #2d3748; --item-bg: #242938; --item-shadow: rgba(0,255,204,0.1); --input-bg: #1a1c29; }
+        [data-theme="lemon"] { --bg-color: #fff9c4; --container-bg: #ffffff; --text-main: #f57f17; --text-muted: #fbc02d; --primary: #fbc02d; --primary-hover: #f9a825; --plus: #43a047; --minus: #e53935; --border: #fff59d; --item-bg: #fffde7; --item-shadow: rgba(251,192,45,0.1); --input-bg: #ffffff; }
+
+        * { box-sizing: border-box; transition: background-color 0.3s, color 0.3s; }
+        /* ปรับ padding ให้เหมาะกับมือถือมากขึ้น */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        .container { background: var(--container-bg); padding: 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); width: 100%; max-width: 420px; position: relative; overflow: hidden; margin-bottom: 20px; }
+        
+        /* Loading Overlay */
+        #loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 1000; color: var(--primary); font-weight: bold; font-size: 1.2rem; }
+
+        /* Auth Screen Styles */
+        #auth-screen { text-align: center; }
+        .banner { 
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white; padding: 30px 20px; border-radius: 8px; margin-bottom: 20px;
+        }
+        .banner h1 { margin: 0; font-size: 28px; }
+        .banner p { margin: 10px 0 0 0; opacity: 0.9; }
+        .auth-form { display: flex; flex-direction: column; text-align: left; }
+        .auth-switch { margin-top: 15px; font-size: 14px; color: var(--primary); cursor: pointer; text-decoration: underline; padding: 10px 0;}
+        .auth-switch:hover { color: var(--primary-hover); }
+        .error-msg { color: var(--minus); font-size: 14px; margin-top: 10px; display: none; text-align: center; }
+
+        /* Social & Admin Buttons */
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: var(--text-muted); font-size: 14px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
+        .divider::before { margin-right: .5em; }
+        .divider::after { margin-left: .5em; }
+        
+        .btn-google { background-color: #fff; color: #757575; border: 1px solid #ddd; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background-color 0.2s; }
+        .btn-google:active { background-color: #f8f8f8; }
+        .btn-admin { background-color: #2c3e50; color: #fff; border: 0; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; margin-top: 10px; transition: background-color 0.2s; }
+        .btn-admin:active { background-color: #1a252f; }
+
+        /* Dashboard & App Screen Styles */
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 10px;}
+        .header-top h2 { margin: 0; font-size: 18px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logout-btn { background: var(--cancel); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; flex-shrink: 0;}
+        
+        .theme-selector { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+        .theme-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+        .theme-btn.active { border-color: var(--text-main); transform: scale(1.1); }
+        .theme-btn[data-theme="light"] { background-color: #f0f2f5; border: 1px solid #ccc; }
+        .theme-btn[data-theme="dark"] { background-color: #121212; border: 1px solid #555;}
+        .theme-btn[data-theme="pastel"] { background-color: #fdf6fd; border: 1px solid #e0b0e0;}
+        .theme-btn[data-theme="nature"] { background-color: #e9edc9; border: 1px solid #aeb67d;}
+        .theme-btn[data-theme="ocean"] { background-color: #caf0f8; border: 1px solid #90e0ef;}
+        .theme-btn[data-theme="sunset"] { background-color: #ffedda; border: 1px solid #e74c3c;}
+        .theme-btn[data-theme="berry"] { background-color: #fce4ec; border: 1px solid #e91e63;}
+        .theme-btn[data-theme="coffee"] { background-color: #efebe9; border: 1px solid #795548;}
+        .theme-btn[data-theme="cyber"] { background-color: #1a1c29; border: 1px solid #00ffcc;}
+        .theme-btn[data-theme="lemon"] { background-color: #fff9c4; border: 1px solid #fbc02d;}
+
+        /* Account Cards */
+        .account-card { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 20px; border-radius: 12px; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 6px var(--item-shadow); transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;}
+        .account-card:active { transform: scale(0.98); }
+        .account-card h3 { color: white; margin: 0 0 5px 0; font-size: 18px; }
+        .account-card p { margin: 0; font-size: 14px; opacity: 0.9; }
+        .account-card.custom { background: linear-gradient(135deg, var(--plus), #27ae60); }
+        
+        .month-title { text-align: center; color: var(--text-muted); font-size: 1.05em; margin-top: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed var(--border); }
+        h3 { color: var(--text-main); margin-top: 25px; margin-bottom: 15px; font-size: 18px; }
+
+        .balance-container { text-align: center; margin-bottom: 20px; }
+        .balance-container h4 { margin: 0; color: var(--text-muted); font-weight: normal; }
+        .balance-container h1 { margin: 5px 0; font-size: 36px; color: var(--text-main); }
+        
+        .inc-exp-container { display: flex; justify-content: space-between; background: var(--item-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px var(--item-shadow); border: 1px solid var(--border); }
+        .inc-exp-container div { flex: 1; text-align: center; }
+        .inc-exp-container div:first-child { border-right: 1px solid var(--border); }
+        .inc-exp-container h4 { margin: 0; font-size: 14px; color: var(--text-muted); }
+        .money { font-size: 20px; font-weight: bold; margin: 5px 0 0 0; }
+        .money.plus { color: var(--plus); }
+        .money.minus { color: var(--minus); }
+        
+        form { display: flex; flex-direction: column; margin-bottom: 20px; }
+        label { margin-top: 10px; font-weight: bold; font-size: 14px; color: var(--text-main); }
+        /* Font size 16px ป้องกันไม่ให้ iOS ซูมหน้าจอเวลากดช่องกรอกข้อมูล */
+        input, select { padding: 14px; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-family: inherit; background-color: var(--input-bg); color: var(--text-main); appearance: none; -webkit-appearance: none; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
+        
+        /* Quick Tags (ตัวช่วยกรอก) */
+        .quick-tags-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 4px; }
+        .quick-tag { background: var(--bg-color); color: var(--text-muted); padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); transition: all 0.2s; }
+        .quick-tag:active { border-color: var(--primary); color: var(--primary); background: var(--item-bg); transform: scale(0.95);}
+
+        .form-actions { display: flex; gap: 10px; margin-top: 25px; }
+        button.btn-submit { background: var(--primary); color: #fff; border: 0; padding: 16px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; flex: 1; box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);}
+        button.btn-submit:active { transform: scale(0.98); }
+        button.btn-cancel { background: var(--cancel); color: #fff; border: 0; padding: 16px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; flex: 1; display: none; }
+        button.btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 16px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; flex: 1; transition: all 0.2s; }
+        button.btn-outline:active { background: var(--primary); color: white; }
+        button.btn-warning { background: linear-gradient(45deg, #f39c12, #d35400); color: white; border: 0;}
+        button.btn-warning:active { transform: scale(0.98); }
+
+        ul { list-style-type: none; padding: 0; margin-bottom: 20px; }
+        li { background: var(--item-bg); color: var(--text-main); display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px var(--item-shadow); border-right: 5px solid transparent; border-left: 1px solid var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        li.plus { border-right-color: var(--plus); }
+        li.minus { border-right-color: var(--minus); }
+        
+        .action-buttons { display: flex; gap: 8px; margin-right: 12px; }
+        .delete-btn, .edit-btn { cursor: pointer; color: #fff; border: 0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;}
+        .delete-btn { background: var(--minus); }
+        .edit-btn { background: var(--warning); font-size: 14px; }
+        .item-text { flex-grow: 1; display: flex; flex-direction: column; }
+        .item-uid-tag { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .item-amount { font-weight: bold; font-size: 16px;}
+        .item-amount.plus { color: var(--plus); }
+        .item-amount.minus { color: var(--minus); }
+
+        /* Admin Dashboard specific */
+        .admin-stat-box { background: var(--primary); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .admin-stat-box h3 { color: white; margin: 0 0 10px 0; font-size: 16px; font-weight: normal; }
+        .admin-stat-box h1 { margin: 0; font-size: 32px; }
+
+        /* Badge & Pro Styles */
+        .badge-pro { background: linear-gradient(45deg, #f1c40f, #e67e22); color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); vertical-align: middle; display: inline-block; }
+
+        /* Custom Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .modal-box { background: var(--container-bg); color: var(--text-main); padding: 25px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-box h3 { margin-top: 0; font-size: 20px; }
+        .modal-box p { margin-bottom: 20px; color: var(--text-muted); line-height: 1.5; word-break: break-word; white-space: pre-wrap; font-size: 15px;}
+        .modal-input { width: 100%; padding: 14px; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--input-bg); color: var(--text-main); }
+        .modal-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .modal-actions button { flex: 1; }
+
+        /* ติดตั้งแอปบนมือถือ Banner */
+        #pwa-install-banner {
+            display: none; background: var(--container-bg); color: var(--text-main); padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px var(--item-shadow); border: 1px solid var(--primary); text-align: center; margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- สร้างและฝัง PWA Manifest & Service Worker เพื่อให้โหลดเป็นแอปบนมือถือได้ -->
+    <script>
+        const manifest = {
+            "name": "Smart Wallet",
+            "short_name": "Wallet",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#f0f2f5",
+            "theme_color": "#3498db",
+            "icons": [{
+                "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+        if ('serviceWorker' in navigator) {
+            const swCode = `self.addEventListener('fetch', function(e){});`;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Error:', err));
+        }
+    </script>
+
+    <!-- Loading -->
+    <div id="loading-overlay">กำลังโหลดข้อมูล...</div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title">ข้อความ</h3>
+            <p id="modal-message"></p>
+            <input type="text" id="modal-input" class="modal-input" style="display:none;" />
+            <div class="modal-actions">
+                <button id="modal-ok-btn" class="btn-submit">ตกลง</button>
+                <button id="modal-cancel-btn" class="btn-cancel" style="display:none;">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================
+         หน้า Login / Signup 
+         ========================================= -->
+    <div id="auth-screen" class="container" style="display: none;">
+        <div class="banner">
+            <h1>💰 Smart Wallet</h1>
+            <p>จัดการเงินของคุณ ง่ายและเป็นส่วนตัว</p>
+        </div>
+
+        <!-- Banner แนะนำการติดตั้งเป็นแอป (จะแสดงเฉพาะบนมือถือที่ยังไม่ติดตั้ง) -->
+        <div id="pwa-install-banner">
+            <span style="font-size: 24px; display: block; margin-bottom: 5px;">📱</span>
+            <strong>ใช้งานได้สะดวกขึ้น!</strong><br>
+            <span style="font-size: 13px; color: var(--text-muted);">
+                1. กดปุ่มแชร์ <b>Share (แชร์)</b> หรือ <b>จุด 3 จุด</b> บนเบราว์เซอร์<br>
+                2. เลือก <b>"เพิ่มลงหน้าจอหลัก" (Add to Home Screen)</b>
+            </span>
+        </div>
+
+        <!-- ฟอร์มเข้าสู่ระบบ -->
+        <div id="login-section">
+            <h3 style="margin-top: 0; text-align: left;">เข้าสู่ระบบ</h3>
+            <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+                <label>อีเมล</label>
+                <input type="email" id="login-email" required>
+                <label>รหัสผ่าน</label>
+                <input type="password" id="login-password" required>
+                <button type="submit" class="btn-submit" style="margin-top: 20px;">เข้าสู่ระบบ</button>
+            </form>
+            <p id="login-error" class="error-msg">อีเมลหรือรหัสผ่านไม่ถูกต้อง</p>
+            <p class="auth-switch" onclick="toggleAuthMode()">ยังไม่มีบัญชี? สร้างบัญชีใหม่ที่นี่</p>
+            
+            <div class="divider">หรือ</div>
+            <button type="button" class="btn-google" onclick="handleGoogleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px;">
+                เข้าสู่ระบบด้วย Google
+            </button>
+            <button type="button" class="btn-admin" onclick="handleAdminLogin()">🔑 ผู้ดูแลระบบ (Admin)</button>
+        </div>
+
+        <!-- ฟอร์มสมัครสมาชิก -->
+        <div id="signup-section" style="display: none;">
+            <h3 style="margin-top: 0; text-align: left;">สร้างบัญชีใหม่</h3>
+            <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
+                <label>อีเมล</label>
+                <input type="email" id="signup-email" required>
+                <label>รหัสผ่าน (อย่างน้อย 6 ตัว)</label>
+                <input type="password" id="signup-password" required minlength="6">
+                <button type="submit" class="btn-submit" style="margin-top: 20px;">สมัครสมาชิก</button>
+            </form>
+            <p id="signup-error" class="error-msg">เกิดข้อผิดพลาด กรุณาลองใหม่</p>
+            <p class="auth-switch" onclick="toggleAuthMode()">มีบัญชีอยู่แล้ว? เข้าสู่ระบบ</p>
+            
+            <div class="divider">หรือ</div>
+            <button type="button" class="btn-google" onclick="handleGoogleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px;">
+                สมัครด้วย Google
+            </button>
+        </div>
+    </div>
+
+    <!-- =========================================
+         หน้าแดชบอร์ด (เลือกบัญชี)
+         ========================================= -->
+    <div id="dashboard-screen" class="container" style="display: none;">
+        <div class="header-top">
+            <h2>สมุดบัญชี <span id="dashboard-pro-badge" class="badge-pro" style="display:none;">👑 PRO</span></h2>
+            <button class="logout-btn" onclick="handleLogout()">ออกจากระบบ</button>
+        </div>
+        
+        <!-- ตัวเลือกตีม -->
+        <div class="theme-selector" style="margin-bottom: 25px;">
+            <button class="theme-btn" data-theme="light" title="สว่าง"></button>
+            <button class="theme-btn" data-theme="dark" title="มืด"></button>
+            <button class="theme-btn" data-theme="pastel" title="พาสเทล"></button>
+            <button class="theme-btn" data-theme="nature" title="ธรรมชาติ"></button>
+            <button class="theme-btn" data-theme="ocean" title="มหาสมุทร"></button>
+            <button class="theme-btn" data-theme="sunset" title="พระอาทิตย์ตก"></button>
+            <button class="theme-btn" data-theme="berry" title="เบอร์รี่"></button>
+            <button class="theme-btn" data-theme="coffee" title="กาแฟ"></button>
+            <button class="theme-btn" data-theme="cyber" title="ไซเบอร์"></button>
+            <button class="theme-btn" data-theme="lemon" title="เลมอน"></button>
+        </div>
+
+        <div id="accounts-list">
+            <!-- สร้างการ์ดผ่าน JS -->
+        </div>
+
+        <!-- ปุ่มเพิ่มบัญชีใหม่ (จะถูกอัปเดตสิทธิ์ใน JS) -->
+        <button id="btn-add-account" class="btn-submit" style="width: 100%; margin-top: 15px; background: transparent; color: var(--primary); border: 2px dashed var(--primary);">
+            + เพิ่มบัญชีใหม่
+        </button>
+    </div>
+
+    <!-- =========================================
+         หน้าหลัก (ระบบรายรับ-รายจ่าย ภายในบัญชีที่เลือก)
+         ========================================= -->
+    <div id="app-screen" class="container" style="display: none;">
+        
+        <div class="header-top">
+            <button class="logout-btn" style="background: var(--primary);" onclick="backToDashboard()">&#8592; กลับ</button>
+            <h2 style="flex: 1; text-align: center; margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <span id="app-account-name">บัญชีส่วนตัว</span>
+                <span id="app-pro-badge" class="badge-pro" style="display:none;">👑 PRO</span>
+            </h2>
+            <button class="logout-btn" onclick="handleLogout()">ออก</button>
+        </div>
+        
+        <div id="month-title" class="month-title">บัญชีประจำเดือน ...</div>
+
+        <div class="balance-container">
+            <h4>ยอดเงินคงเหลือ</h4>
+            <h1 id="balance">฿0.00</h1>
+        </div>
+
+        <div class="inc-exp-container">
+            <div>
+                <h4>รายรับ</h4>
+                <p id="money-plus" class="money plus">+฿0.00</p>
+            </div>
+            <div>
+                <h4>รายจ่าย</h4>
+                <p id="money-minus" class="money minus">-฿0.00</p>
+            </div>
+        </div>
+
+        <h3 id="form-title">เพิ่มรายการใหม่</h3>
+        <form id="app-form" onsubmit="handleTransaction(event)">
+            <label for="type">ประเภท</label>
+            <select id="type" onchange="updateQuickTags()">
+                <option value="minus">รายจ่าย</option>
+                <option value="plus">รายรับ</option>
+            </select>
+
+            <label for="text">ชื่อรายการ</label>
+            <div id="quick-tags" class="quick-tags-container"></div>
+            <input type="text" id="text" placeholder="ระบุชื่อรายการ หรือเลือกจากด้านบน..." required />
+
+            <label for="amount">จำนวนเงิน (บาท)</label>
+            <input type="number" id="amount" placeholder="ใส่จำนวนเงิน..." required min="1" step="0.01" />
+
+            <div class="form-actions">
+                <button type="submit" id="submit-btn" class="btn-submit">เพิ่มรายการ</button>
+                <button type="button" id="cancel-btn" class="btn-cancel" onclick="cancelEdit()">ยกเลิก</button>
+            </div>
+        </form>
+
+        <h3 style="border-top: 1px solid var(--border); padding-top: 20px;">ประวัติการทำรายการ</h3>
+        <ul id="list"></ul>
+    </div>
+
+    <!-- =========================================
+         หน้า Admin (ผู้ดูแลระบบ) 
+         ========================================= -->
+    <div id="admin-screen" class="container" style="display: none; max-width: 600px;">
+        <div class="header-top">
+            <h2>🛡️ ผู้ดูแลระบบ</h2>
+            <button class="logout-btn" onclick="exitAdmin()">ปิดโหมด Admin</button>
+        </div>
+        
+        <div class="admin-stat-box">
+            <h3>เงินสะสมหมุนเวียนรวมในระบบ (ทุกบัญชี)</h3>
+            <h1 id="admin-total-balance">฿0.00</h1>
+        </div>
+
+        <!-- ปุ่มกดดูรายชื่อสมาชิกและอนุมัติโปร (กาง/ซ่อน) -->
+        <button class="btn-outline" style="width: 100%; margin-bottom: 20px; display: block;" onclick="toggleAdminUsers()">
+            👥 ดูรายชื่อสมาชิกและอนุมัติ PRO
+        </button>
+
+        <!-- ส่วนของรายชื่อสมาชิก (ถูกซ่อนเป็นค่าเริ่มต้น) -->
+        <div id="admin-users-section" style="display: none; background: var(--item-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 25px; box-shadow: 0 4px 6px var(--item-shadow);">
+            <h3 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">รายชื่อสมาชิก</h3>
+            <ul id="admin-users-list" style="max-height: 350px; overflow-y: auto; padding-right: 5px; margin-bottom: 0;"></ul>
+            <button class="btn-cancel" style="width: 100%; margin-top: 15px; padding: 10px;" onclick="toggleAdminUsers()">ซ่อนรายชื่อ</button>
+        </div>
+
+        <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px;">📋 รายการเดินบัญชีล่าสุด</h3>
+        <ul id="admin-list"></ul>
+        
+    </div>
+
+    <script>
+        // --- ตรวจสอบการใช้งานบนมือถือเพื่อแสดง Banner แนะนำแอป ---
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isMobile && !isStandalone) {
+            document.getElementById('pwa-install-banner').style.display = 'block';
+        }
+
+        // --- 1. ระบบจัดการตีม (Theme) ---
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        let currentTheme = localStorage.getItem('app-theme') || 'light';
+        function applyTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('app-theme', themeName);
+            themeBtns.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-theme') === themeName) btn.classList.add('active');
+            });
+        }
+        themeBtns.forEach(btn => btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme'))));
+        applyTheme(currentTheme);
+
+        // --- 1.5 Custom Modal Logic ---
+        window.showModal = function({ title, message, showInput = false, inputType = 'text', showCancel = false, onOk = null }) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const titleEl = document.getElementById('modal-title');
+            const messageEl = document.getElementById('modal-message');
+            const inputEl = document.getElementById('modal-input');
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            titleEl.innerText = title || 'แจ้งเตือน';
+            messageEl.innerText = message || '';
+            
+            if (showInput) {
+                inputEl.type = inputType;
+                inputEl.style.display = 'block';
+                inputEl.value = '';
+                setTimeout(() => inputEl.focus(), 100);
+            } else {
+                inputEl.style.display = 'none';
+            }
+
+            cancelBtn.style.display = showCancel ? 'block' : 'none';
+
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newOkBtn.onclick = () => {
+                overlay.style.display = 'none';
+                if (onOk) onOk(showInput ? inputEl.value : null);
+            };
+
+            newCancelBtn.onclick = () => {
+                overlay.style.display = 'none';
+            };
+
+            overlay.style.display = 'flex';
+        };
+
+        // --- 2. ตัวแปร UI และ Data ---
+        const authScreen = document.getElementById('auth-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const appScreen = document.getElementById('app-screen');
+        const adminScreen = document.getElementById('admin-screen');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loginSection = document.getElementById('login-section');
+        const signupSection = document.getElementById('signup-section');
+        
+        let currentUser = null;
+        let currentAccountId = null; 
+        let transactions = [];
+        let editItemId = null;
+        let unsubscribeDB = null; 
+        let unsubscribeAccountsDB = null; 
+        let unsubscribeAdminDB = null;
+        let unsubscribeProfileDB = null; 
+
+        // --- ระบบตัวช่วยกรอก (Quick Tags) ---
+        window.updateQuickTags = function() {
+            const type = document.getElementById('type').value;
+            const container = document.getElementById('quick-tags');
+            if(!container) return; 
+            
+            container.innerHTML = '';
+            const tagsExpense = ['ค่าอาหาร', 'ค่าน้ำมัน', 'ค่ารถ', 'ค่าเน็ต'];
+            const tagsIncome = ['เงินเดือน', 'ขายของ', 'ค่าแรง', 'โบนัส'];
+            const tags = type === 'minus' ? tagsExpense : tagsIncome;
+
+            tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'quick-tag';
+                span.innerText = '+ ' + tag;
+                span.onclick = () => {
+                    document.getElementById('text').value = tag;
+                    document.getElementById('amount').focus(); 
+                };
+                container.appendChild(span);
+            });
+        };
+        setTimeout(window.updateQuickTags, 100);
+
+        function saveUserProfile(user) {
+            if (!user) return;
+            const userProfileRef = window.ref(window.db, `users/${user.uid}/profile`);
+            window.update(userProfileRef, {
+                email: user.email || 'ไม่ระบุอีเมล',
+                lastLogin: Date.now()
+            }).catch(e => console.log('Update profile error:', e));
+        }
+
+        // --- 3. ระบบ Authentication ---
+        window.toggleAuthMode = function() {
+            if (loginSection.style.display === 'none') {
+                loginSection.style.display = 'block';
+                signupSection.style.display = 'none';
+            } else {
+                loginSection.style.display = 'none';
+                signupSection.style.display = 'block';
+            }
+        }
+
+        window.handleLogin = function(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            document.getElementById('login-error').style.display = 'none';
+            loadingOverlay.style.display = 'flex';
+
+            window.signInWithEmailAndPassword(window.auth, email, pass)
+                .then((cred) => saveUserProfile(cred.user))
+                .catch((error) => {
+                    loadingOverlay.style.display = 'none';
+                    document.getElementById('login-error').style.display = 'block';
+                });
+        };
+
+        window.handleSignup = function(e) {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const pass = document.getElementById('signup-password').value;
+            document.getElementById('signup-error').style.display = 'none';
+            loadingOverlay.style.display = 'flex';
+
+            window.createUserWithEmailAndPassword(window.auth, email, pass)
+                .then((cred) => saveUserProfile(cred.user))
+                .catch((error) => {
+                    loadingOverlay.style.display = 'none';
+                    const errorMsg = document.getElementById('signup-error');
+                    errorMsg.innerText = "ไม่สามารถสร้างบัญชีได้ (อีเมลอาจถูกใช้ไปแล้ว)";
+                    errorMsg.style.display = 'block';
+                });
+        };
+
+        window.handleGoogleLogin = function() {
+            const provider = new window.GoogleAuthProvider();
+            loadingOverlay.style.display = 'flex';
+            window.signInWithPopup(window.auth, provider)
+                .then((result) => saveUserProfile(result.user))
+                .catch((error) => {
+                    loadingOverlay.style.display = 'none';
+                    let errorMsg = "การเข้าสู่ระบบด้วย Google ล้มเหลว โปรดลองอีกครั้ง";
+                    if (error.code === 'auth/unauthorized-domain') {
+                        const currentDomain = window.location.hostname;
+                        errorMsg = `โดเมน "${currentDomain}" ยังไม่ได้รับอนุญาต\nกรุณาเพิ่มใน Firebase Console`;
+                    }
+                    window.showModal({ title: 'ข้อผิดพลาด', message: errorMsg });
+                });
+        };
+
+        window.handleLogout = function() {
+            window.signOut(window.auth);
+        };
+
+        window.initAuthListener = function() {
+            window.onAuthStateChanged(window.auth, (user) => {
+                if (adminScreen.style.display === 'block') return;
+
+                if (user) {
+                    saveUserProfile(user);
+                    currentUser = user;
+                    authScreen.style.display = 'none';
+                    appScreen.style.display = 'none';
+                    adminScreen.style.display = 'none';
+                    dashboardScreen.style.display = 'block';
+                    loadAccounts();
+                } else {
+                    currentUser = null;
+                    currentAccountId = null;
+                    authScreen.style.display = 'block';
+                    dashboardScreen.style.display = 'none';
+                    appScreen.style.display = 'none';
+                    adminScreen.style.display = 'none';
+                    loadingOverlay.style.display = 'none';
+                    
+                    if(unsubscribeDB) unsubscribeDB();
+                    if(unsubscribeAccountsDB) unsubscribeAccountsDB();
+                    if(unsubscribeProfileDB) unsubscribeProfileDB();
+                    transactions = [];
+                    renderApp(); 
+                }
+            });
+        };
+
+        // --- 4. ระบบ Dashboard ---
+        window.loadAccounts = function() {
+            if (!currentUser) return;
+            loadingOverlay.style.display = 'flex';
+            
+            const accountsRef = window.ref(window.db, `users/${currentUser.uid}/accounts`);
+            unsubscribeAccountsDB = window.onValue(accountsRef, (snapshot) => {
+                loadingOverlay.style.display = 'none';
+                const accountsContainer = document.getElementById('accounts-list');
+                accountsContainer.innerHTML = `
+                    <div class="account-card" onclick="openAccount('default', 'บัญชีส่วนตัว')">
+                        <h3>💳 บัญชีส่วนตัว</h3>
+                        <p>บัญชีเงินเก็บและค่าใช้จ่ายประจำวัน</p>
+                    </div>
+                `;
+
+                const data = snapshot.val();
+                if (data) {
+                    for (let key in data) {
+                        const acc = data[key];
+                        accountsContainer.innerHTML += `
+                            <div class="account-card custom" onclick="openAccount('${key}', '${acc.name}')">
+                                <h3>📂 ${acc.name}</h3>
+                                <p>บัญชีเพิ่มเติม</p>
+                            </div>
+                        `;
+                    }
+                }
+            });
+
+            const profileRef = window.ref(window.db, `users/${currentUser.uid}/profile`);
+            unsubscribeProfileDB = window.onValue(profileRef, (snapshot) => {
+                const profile = snapshot.val() || {};
+                const canAddAccount = profile.canAddAccount || false; 
+                const isPro = profile.isPro || false;
+                
+                const btnAdd = document.getElementById('btn-add-account');
+                
+                if (canAddAccount || isPro) {
+                    btnAdd.innerHTML = '+ เพิ่มบัญชีใหม่';
+                    btnAdd.style.opacity = '1';
+                    btnAdd.onclick = window.handleCreateAccount;
+                } else {
+                    btnAdd.innerHTML = '🔒 เพิ่มบัญชีใหม่ (ล็อค)';
+                    btnAdd.style.opacity = '0.6';
+                    btnAdd.onclick = () => {
+                        window.showModal({
+                            title: 'ฟีเจอร์ถูกล็อค', 
+                            message: 'ฟีเจอร์สำหรับผู้ใช้งาน PRO เท่านั้น'
+                        });
+                    };
+                }
+
+                document.getElementById('dashboard-pro-badge').style.display = isPro ? 'inline-block' : 'none';
+                const appProBadge = document.getElementById('app-pro-badge');
+                if(appProBadge) appProBadge.style.display = isPro ? 'inline-block' : 'none';
+            });
+        };
+
+        window.openAccount = function(id, name) {
+            currentAccountId = id;
+            document.getElementById('app-account-name').innerText = name;
+            dashboardScreen.style.display = 'none';
+            appScreen.style.display = 'block';
+            loadUserData(id);
+        };
+
+        window.backToDashboard = function() {
+            if (editItemId !== null) cancelEdit();
+            if(unsubscribeDB) unsubscribeDB(); 
+            appScreen.style.display = 'none';
+            dashboardScreen.style.display = 'block';
+            currentAccountId = null;
+        };
+
+        window.handleCreateAccount = function() {
+            window.showModal({
+                title: 'สร้างบัญชีใหม่',
+                message: 'กรุณาตั้งชื่อบัญชีใหม่:',
+                showInput: true,
+                inputType: 'text',
+                showCancel: true,
+                onOk: (name) => {
+                    if (name && name.trim() !== '') {
+                        window.push(window.ref(window.db, `users/${currentUser.uid}/accounts`), {
+                            name: name.trim(),
+                            createdAt: Date.now()
+                        });
+                    }
+                }
+            });
+        };
+
+        // --- 5. ระบบ Admin ---
+        window.handleAdminLogin = function() {
+            window.showModal({
+                title: 'เข้าสู่โหมด Admin',
+                message: 'รหัสผ่านผู้ดูแลระบบ:',
+                showInput: true,
+                inputType: 'password',
+                showCancel: true,
+                onOk: (pin) => {
+                    if (pin === "1471200") {
+                        authScreen.style.display = 'none';
+                        dashboardScreen.style.display = 'none';
+                        appScreen.style.display = 'none';
+                        adminScreen.style.display = 'block';
+                        loadAdminData();
+                    } else if (pin) {
+                        window.showModal({ title: 'ข้อผิดพลาด', message: 'รหัสผ่านไม่ถูกต้อง!' });
+                    }
+                }
+            });
+        };
+
+        window.exitAdmin = function() {
+            if(window.unsubscribeAdminDB) window.unsubscribeAdminDB();
+            adminScreen.style.display = 'none';
+            if (currentUser) {
+                currentAccountId ? appScreen.style.display = 'block' : dashboardScreen.style.display = 'block';
+            } else {
+                authScreen.style.display = 'block';
+            }
+        };
+
+        window.toggleAdminUsers = function() {
+            const section = document.getElementById('admin-users-section');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.toggleUserProStatus = function(uid, currentProStatus) {
+            if (currentProStatus) {
+                window.showModal({
+                    title: 'ยืนยันการยกเลิก PRO',
+                    message: 'ยกเลิกสถานะ PRO ของผู้ใช้นี้?',
+                    showCancel: true,
+                    onOk: () => {
+                        window.update(window.ref(window.db), { [`users/${uid}/profile/isPro`]: false })
+                            .catch(error => window.showModal({ title: 'ผิดพลาด', message: 'อัปเดตไม่ได้' }));
+                    }
+                });
+            } else {
+                window.update(window.ref(window.db), { [`users/${uid}/profile/isPro`]: true })
+                    .catch(error => window.showModal({ title: 'ผิดพลาด', message: 'อัปเดตไม่ได้' }));
+            }
+        };
+
+        window.toggleUserAccountStatus = function(uid, currentStatus) {
+            window.update(window.ref(window.db), { [`users/${uid}/profile/canAddAccount`]: !currentStatus })
+                .catch(error => window.showModal({ title: 'ผิดพลาด', message: 'อัปเดตไม่ได้' }));
+        };
+
+        window.loadAdminData = function() {
+            loadingOverlay.style.display = 'flex';
+            const allUsersRef = window.ref(window.db, `users`);
+            const adminList = document.getElementById('admin-list');
+            const adminUsersList = document.getElementById('admin-users-list');
+
+            window.unsubscribeAdminDB = window.onValue(allUsersRef, (snapshot) => {
+                loadingOverlay.style.display = 'none';
+                const data = snapshot.val();
+                
+                adminList.innerHTML = '';
+                adminUsersList.innerHTML = '';
+                
+                let allSystemTransactions = [];
+                let totalBalance = 0;
+
+                if (data) {
+                    for (let uid in data) {
+                        const profile = data[uid].profile || {};
+                        const userEmail = profile.email || `UID: ${uid.substring(0, 8)}...`;
+                        const isPro = profile.isPro ? true : false;
+                        const canAdd = profile.canAddAccount ? true : false;
+
+                        const statusProText = isPro ? '👑 PRO' : '👤 ทั่วไป';
+                        const btnProText = isPro ? 'ยกเลิก PRO' : '⭐ อัปเกรด PRO';
+                        const btnProClass = isPro ? 'btn-cancel' : 'btn-warning';
+                        
+                        const statusAddText = canAdd ? '🟢 เพิ่มได้' : '🔴 ล็อคอยู่';
+                        const btnAddText = canAdd ? 'ล็อคสิทธิ์' : 'ปลดล็อคบัญชี';
+                        const btnAddClass = canAdd ? 'btn-cancel' : 'btn-submit';
+                        
+                        const userLi = document.createElement('li');
+                        userLi.style.flexDirection = 'column';
+                        userLi.style.alignItems = 'stretch';
+                        userLi.innerHTML = `
+                            <div class="item-text" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <div><span style="font-weight: bold; display: block; word-break: break-all;">📧 ${userEmail}</span></div>
+                                <div style="text-align: right; font-size: 12px; color: var(--text-muted); flex-shrink: 0; margin-left: 10px;">
+                                    <div style="color: ${isPro ? '#e67e22' : 'inherit'}; font-weight: ${isPro ? 'bold' : 'normal'}; margin-bottom: 2px;">สถานะ: ${statusProText}</div>
+                                    <div>เพิ่มบัญชี: ${statusAddText}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="${btnProClass}" style="flex: 1; padding: 10px; border: 0; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;" onclick="toggleUserProStatus('${uid}', ${isPro})">${btnProText}</button>
+                                <button class="${btnAddClass}" style="flex: 1; padding: 10px; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-size: 13px; font-weight: bold;" onclick="toggleUserAccountStatus('${uid}', ${canAdd})">${btnAddText}</button>
+                            </div>
+                        `;
+                        adminUsersList.appendChild(userLi);
+
+                        if (data[uid].transactions) {
+                            for (let tid in data[uid].transactions) {
+                                const t = data[uid].transactions[tid];
+                                t.id = tid; t.uid = uid; t.email = userEmail; t.source = 'บัญชีหลัก';
+                                allSystemTransactions.push(t); totalBalance += t.amount;
+                            }
+                        }
+                        if (data[uid].accounts) {
+                            for (let accId in data[uid].accounts) {
+                                if (data[uid].accounts[accId].transactions) {
+                                    for (let tid in data[uid].accounts[accId].transactions) {
+                                        const t = data[uid].accounts[accId].transactions[tid];
+                                        t.id = tid; t.uid = uid; t.email = userEmail; t.source = data[uid].accounts[accId].name;
+                                        allSystemTransactions.push(t); totalBalance += t.amount;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if(adminUsersList.innerHTML === '') adminUsersList.innerHTML = '<li style="justify-content: center; color: gray;">ไม่มีรายชื่อสมาชิก</li>';
+
+                    allSystemTransactions.sort((a, b) => b.timestamp - a.timestamp);
+                    document.getElementById('admin-total-balance').innerText = `฿${totalBalance.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+                    allSystemTransactions.forEach(t => {
+                        const sign = t.amount < 0 ? '-' : '+';
+                        const itemClass = t.amount < 0 ? 'minus' : 'plus';
+                        const item = document.createElement('li');
+                        item.classList.add(itemClass);
+                        const dateStr = new Date(t.timestamp).toLocaleString('th-TH');
+                        
+                        item.innerHTML = `
+                            <div class="item-text">
+                                <span class="item-uid-tag">ผู้ใช้: ${t.email} | [${t.source}]<br>${dateStr}</span>
+                                <span>${t.text}</span>
+                            </div>
+                            <span class="item-amount ${itemClass}">${sign}฿${Math.abs(t.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                        `;
+                        adminList.appendChild(item);
+                    });
+                    if(allSystemTransactions.length === 0) adminList.innerHTML = '<li style="justify-content: center; color: gray;">ไม่มีรายการ</li>';
+                } else {
+                    document.getElementById('admin-total-balance').innerText = `฿0.00`;
+                    adminList.innerHTML = '<li style="justify-content: center; color: gray;">ไม่มีข้อมูลผู้ใช้ในระบบ</li>';
+                    adminUsersList.innerHTML = '<li style="justify-content: center; color: gray;">ไม่มีข้อมูล</li>';
+                }
+            }, (error) => {
+                loadingOverlay.style.display = 'none';
+                window.showModal({ title: 'เกิดข้อผิดพลาด', message: "ไม่สามารถดึงข้อมูลได้!" });
+            });
+        };
+
+        // --- 6. ระบบ App หลัก ---
+        function loadUserData(accountId) {
+            if (!currentUser) return;
+            const dbPath = accountId === 'default' ? `users/${currentUser.uid}/transactions` : `users/${currentUser.uid}/accounts/${accountId}/transactions`;
+            const userTransactionsRef = window.ref(window.db, dbPath);
+
+            loadingOverlay.style.display = 'flex';
+            unsubscribeDB = window.onValue(userTransactionsRef, (snapshot) => {
+                const data = snapshot.val();
+                transactions = []; 
+                if (data) {
+                    for (let key in data) {
+                        transactions.push({ id: key, text: data[key].text, amount: data[key].amount, timestamp: data[key].timestamp || 0 });
+                    }
+                    transactions.sort((a, b) => a.timestamp - b.timestamp);
+                }
+                loadingOverlay.style.display = 'none';
+                renderApp();
+            });
+        }
+
+        window.handleTransaction = function(e) {
+            e.preventDefault();
+            const textEl = document.getElementById('text');
+            const amountEl = document.getElementById('amount');
+            const typeEl = document.getElementById('type');
+            
+            if (textEl.value.trim() === '' || amountEl.value.trim() === '') return;
+            if (!currentUser || !currentAccountId) return;
+
+            const transactionAmount = typeEl.value === 'minus' ? -Math.abs(amountEl.value) : Math.abs(amountEl.value);
+            const userDbPath = currentAccountId === 'default' ? `users/${currentUser.uid}/transactions` : `users/${currentUser.uid}/accounts/${currentAccountId}/transactions`;
+
+            if (editItemId !== null) {
+                const updates = {};
+                updates[`${userDbPath}/${editItemId}`] = { text: textEl.value, amount: transactionAmount, timestamp: transactions.find(t => t.id === editItemId).timestamp };
+                window.update(window.ref(window.db), updates);
+                cancelEdit();
+            } else {
+                window.push(window.ref(window.db, userDbPath), { text: textEl.value, amount: transactionAmount, timestamp: Date.now() });
+            }
+            document.getElementById('app-form').reset();
+            window.updateQuickTags(); 
+        };
+
+        window.removeTransaction = function(id) {
+            window.showModal({
+                title: 'ยืนยันการลบ',
+                message: 'คุณแน่ใจหรือไม่ที่จะลบรายการนี้?',
+                showCancel: true,
+                onOk: () => {
+                    if (editItemId === id) cancelEdit();
+                    const userDbPath = currentAccountId === 'default' ? `users/${currentUser.uid}/transactions/${id}` : `users/${currentUser.uid}/accounts/${currentAccountId}/transactions/${id}`;
+                    window.remove(window.ref(window.db, userDbPath));
+                }
+            });
+        };
+
+        window.startEdit = function(id) {
+            const item = transactions.find(t => t.id === id);
+            if (item) {
+                document.getElementById('type').value = item.amount < 0 ? 'minus' : 'plus';
+                window.updateQuickTags();
+                document.getElementById('text').value = item.text;
+                document.getElementById('amount').value = Math.abs(item.amount);
+                editItemId = id;
+                document.getElementById('form-title').innerText = 'แก้ไขรายการ';
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.innerText = 'บันทึก';
+                submitBtn.style.backgroundColor = 'var(--warning)';
+                document.getElementById('cancel-btn').style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        window.cancelEdit = function() {
+            editItemId = null;
+            document.getElementById('app-form').reset();
+            window.updateQuickTags();
+            document.getElementById('form-title').innerText = 'เพิ่มรายการใหม่';
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.innerText = 'เพิ่มรายการ';
+            submitBtn.style.backgroundColor = 'var(--primary)';
+            document.getElementById('cancel-btn').style.display = 'none';
+        };
+
+        function renderApp() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            
+            const date = new Date();
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            document.getElementById('month-title').innerText = `สรุปรายการเดือน ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
+
+            const amounts = transactions.map(t => t.amount);
+            const total = amounts.reduce((acc, item) => (acc += item), 0);
+            const income = amounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0);
+            const expense = amounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1;
+
+            document.getElementById('balance').innerText = `฿${total.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('money-plus').innerText = `+฿${income.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('money-minus').innerText = `-฿${expense.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+            transactions.forEach(transaction => {
+                const sign = transaction.amount < 0 ? '-' : '+';
+                const itemClass = transaction.amount < 0 ? 'minus' : 'plus';
+                const item = document.createElement('li');
+                item.classList.add(itemClass);
+                item.innerHTML = `
+                    <div class="action-buttons">
+                        <button class="delete-btn" onclick="removeTransaction('${transaction.id}')" title="ลบ">×</button>
+                        <button class="edit-btn" onclick="startEdit('${transaction.id}')" title="แก้ไข">✎</button>
+                    </div>
+                    <span class="item-text">
+                        <span style="margin: auto 0;">${transaction.text}</span>
+                    </span>
+                    <span class="item-amount ${itemClass}">${sign}฿${Math.abs(transaction.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
