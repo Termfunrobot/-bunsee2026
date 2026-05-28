@@ -408,8 +408,8 @@
                 เข้าสู่ระบบด้วย Google
             </button>
             
-            <button type="button" class="btn-guest" onclick="handleGuestLogin()">
-                <span style="font-size: 18px;">👤</span> เข้าใช้งานแบบไม่ล็อกอิน (Guest)
+            <button type="button" class="btn-admin" onclick="handleAdminAccess()" style="display: flex; justify-content: center; align-items: center; gap: 12px; box-shadow: var(--item-shadow); margin-bottom: 15px;">
+                <span style="font-size: 18px;">🛡️</span> เข้าด้วยแอดมินระบบ
             </button>
         </div>
 
@@ -483,6 +483,12 @@
                 <p>แชร์รายการสั่งของ ทำงานร่วมกับเพื่อนและทีมงาน</p>
             </div>
         </div>
+
+        <h3 style="margin-top: 35px; font-size: 16px; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 10px;">📢 ข่าวสารและอัปเดต</h3>
+        <div id="news-feed-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+            <!-- โหลดข่าวสารจาก Database มาแสดงที่นี่ -->
+        </div>
+
     </div>
 
     <!-- =========================================
@@ -748,6 +754,18 @@
             <button class="btn-cancel" style="width: 100%; margin-top: 15px; padding: 12px;" onclick="toggleAdminUsers()">ซ่อนรายชื่อ</button>
         </div>
 
+        <button class="btn-outline" style="width: 100%; margin-bottom: 20px; display: block;" onclick="window.toggleAdminNews()">
+            📰 จัดการข่าวสารและอัปเดต (News Feed)
+        </button>
+
+        <div id="admin-news-section" style="display: none; background: var(--input-bg); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 16px;">ข่าวสารทั้งหมด</h3>
+                <button class="btn-submit" style="width: auto; padding: 8px 12px; font-size: 13px;" onclick="window.openNewsModal()">+ เพิ่มข่าวใหม่</button>
+            </div>
+            <ul id="admin-news-list" style="padding: 0; margin: 0; list-style: none;"></ul>
+        </div>
+
         <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 30px;">📋 ความเคลื่อนไหวล่าสุด (All Logs)</h3>
         <ul id="admin-list" style="max-height: 500px; overflow-y: auto; padding-right: 10px;"></ul>
     </div>
@@ -755,6 +773,35 @@
     <!-- =========================================
          Form Modals (หน้าต่างแบบสไลด์เพื่อกรอกข้อมูล)
          ========================================= -->
+
+    <!-- Modal: จัดการข่าวสารอัปเดต (Admin) -->
+    <div id="news-modal" class="form-modal-overlay">
+        <div class="form-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="news-form-title" style="margin: 0; font-size: 22px; border: none; padding: 0;">เพิ่มข่าวสารใหม่</h3>
+                <button type="button" class="form-modal-close" onclick="closeFormModal('news')">&times;</button>
+            </div>
+            <form id="news-form" onsubmit="submitNews(event)">
+                <label for="news-title">หัวข้อข่าว</label>
+                <input type="text" id="news-title" placeholder="พิมพ์หัวข้อข่าว..." required />
+
+                <label for="news-content">เนื้อหา/รายละเอียด</label>
+                <textarea id="news-content" placeholder="พิมพ์เนื้อหาข่าวอัปเดต (เว้นบรรทัดได้)..." required></textarea>
+
+                <label for="news-youtube">ลิงก์ YouTube (ถ้ามี)</label>
+                <input type="url" id="news-youtube" placeholder="เช่น https://www.youtube.com/watch?v=..." />
+
+                <label>แนบรูปภาพประกอบ (Optional)</label>
+                <input type="file" accept="image/*" onchange="window.handleImageUpload(event, 'preview-news-img', 'tempNewsImage')" id="input-news-img" />
+                <img id="preview-news-img" class="img-preview" />
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">โพสต์ข่าวสาร</button>
+                    <button type="button" class="btn-cancel" onclick="closeFormModal('news')">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
          
     <!-- Modal: สร้างบัญชีใหม่ (เพิ่มรูปได้) -->
     <div id="create-account-modal" class="form-modal-overlay">
@@ -1105,7 +1152,7 @@
         };
 
         window.openFormModal = function(type, isEdit = false) {
-            if (!isEdit && type !== 'create-account' && type !== 'create-office') window.cancelEdit(); 
+            if (!isEdit && type !== 'create-account' && type !== 'create-office' && type !== 'news') window.cancelEdit(); 
             let modalId = type + '-modal';
             if (type.startsWith('office_')) {
                 modalId = type.split('_')[1] + '-modal';
@@ -1121,7 +1168,7 @@
             }
             const modal = document.getElementById(modalId);
             if (modal) modal.style.display = 'none';
-            if (type !== 'create-account' && type !== 'create-office') window.cancelEdit(); 
+            if (type !== 'create-account' && type !== 'create-office' && type !== 'news') window.cancelEdit(); 
         };
 
         // --- 2. ตัวแปร UI และ Data ---
@@ -1307,16 +1354,25 @@
             });
         };
 
-        window.handleGuestLogin = function() {
-            loadingOverlay.style.display = 'flex';
-            setTimeout(() => {
-                window.isGuestMode = true;
-                window.currentUser = { isAnonymous: true, uid: 'guest_local' };
-                loadingOverlay.style.display = 'none';
-                window.hideAllScreens();
-                if(dashboardScreen) dashboardScreen.style.display = 'block';
-                window.loadAccounts();
-            }, 500);
+        window.handleAdminAccess = function() {
+            window.showModal({
+                title: 'ยืนยันตัวตนผู้ดูแลระบบ',
+                message: 'กรุณากรอกรหัสผ่าน Admin',
+                showInput: true,
+                inputType: 'password',
+                showCancel: true,
+                onOk: (pin) => {
+                    // สามารถเปลี่ยนรหัสผ่านตรงนี้ได้
+                    if (pin === '1471200') {
+                        window.hideAllScreens();
+                        const adminScreen = document.getElementById('admin-screen');
+                        if (adminScreen) adminScreen.style.display = 'block';
+                        window.loadAdminData();
+                    } else {
+                        window.showModal({ title: 'ผิดพลาด', message: 'รหัสผ่านแอดมินไม่ถูกต้อง!' });
+                    }
+                }
+            });
         };
 
         window.handleLogout = function() { 
@@ -1340,6 +1396,7 @@
                     window.saveUserProfile(user); window.currentUser = user; window.hideAllScreens(); 
                     if(dashboardScreen) dashboardScreen.style.display = 'block'; 
                     window.loadAccounts();
+                    window.loadNews();
                 } else {
                     window.currentUser = null; window.currentAccountId = null; window.currentAccountType = 'finance'; window.hideAllScreens(); 
                     if(authScreen) authScreen.style.display = 'block'; 
@@ -1793,6 +1850,155 @@
                 window.clearImagePreview('input-finance-img', 'preview-finance-img');
                 const btn = document.getElementById('submit-btn'); if (btn) { btn.innerText = 'บันทึกรายการ'; btn.style.backgroundColor = 'var(--primary)'; }
             }
+        };
+
+        // --- 7.5 ระบบข่าวสาร (News & Updates) ---
+        window.globalNewsData = [];
+        window.editingNewsId = null;
+        window.tempNewsImage = null;
+
+        window.loadNews = function() {
+            window.onValue(window.ref(window.db, 'news'), (snapshot) => {
+                const data = snapshot.val();
+                let newsArray = [];
+                if (data) {
+                    for (let key in data) { newsArray.push({ id: key, ...data[key] }); }
+                    newsArray.sort((a, b) => b.timestamp - a.timestamp);
+                }
+                window.globalNewsData = newsArray;
+                window.renderNewsFeed();
+                window.renderAdminNewsList();
+            });
+        };
+
+        window.getYouTubeEmbed = function(url) {
+            if (!url) return '';
+            // กรอง URL แปลงให้เป็นรหัสวิดีโอ เพื่อนำมาแสดง iframe
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-top: 15px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--item-shadow);"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${match[2]}" frameborder="0" allowfullscreen></iframe></div>`;
+            }
+            return `<a href="${url}" target="_blank" style="color: var(--primary); font-size: 14px; display: block; margin-top: 10px; text-decoration: underline;">🎥 ดูวิดีโอ YouTube ที่แนบมา</a>`;
+        };
+
+        window.renderNewsFeed = function() {
+            const container = document.getElementById('news-feed-list');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (window.globalNewsData.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px; text-align: center;">ยังไม่มีข่าวสารอัปเดตในขณะนี้</p>';
+                return;
+            }
+
+            window.globalNewsData.forEach(news => {
+                const dateStr = new Date(news.timestamp).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const imgHTML = news.image ? `<img src="${news.image}" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border);">` : '';
+                const ytHTML = news.youtube ? window.getYouTubeEmbed(news.youtube) : '';
+
+                container.innerHTML += `
+                    <div style="background: var(--item-bg); padding: 24px; border-radius: var(--radius-md); box-shadow: var(--item-shadow); border: 1px solid var(--border);">
+                        ${imgHTML}
+                        <h3 style="margin: 0 0 5px 0; color: var(--primary); font-size: 20px;">${news.title}</h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 15px 0;">📅 ${dateStr} | ✍️ โดย Admin</p>
+                        <div style="font-size: 15px; color: var(--text-main); white-space: pre-wrap; line-height: 1.6;">${news.content}</div>
+                        ${ytHTML}
+                    </div>
+                `;
+            });
+        };
+
+        window.toggleAdminNews = function() {
+            const section = document.getElementById('admin-news-section');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.openNewsModal = function(editId = null) {
+            window.editingNewsId = editId;
+            const form = document.getElementById('news-form');
+            if (form) form.reset();
+            window.clearImagePreview('input-news-img', 'preview-news-img', 'tempNewsImage');
+
+            if (editId) {
+                const news = window.globalNewsData.find(n => n.id === editId);
+                if (news) {
+                    document.getElementById('news-title').value = news.title || '';
+                    document.getElementById('news-content').value = news.content || '';
+                    document.getElementById('news-youtube').value = news.youtube || '';
+                    if (news.image) {
+                        window.tempNewsImage = news.image;
+                        document.getElementById('preview-news-img').src = news.image;
+                        document.getElementById('preview-news-img').style.display = 'block';
+                    }
+                }
+                document.getElementById('news-form-title').innerText = 'แก้ไขข่าวสาร';
+            } else {
+                document.getElementById('news-form-title').innerText = 'เพิ่มข่าวสารใหม่';
+            }
+            window.openFormModal('news');
+        };
+
+        window.submitNews = function(e) {
+            e.preventDefault();
+            loadingOverlay.style.display = 'flex';
+            const title = document.getElementById('news-title').value.trim();
+            const content = document.getElementById('news-content').value.trim();
+            const youtube = document.getElementById('news-youtube').value.trim();
+
+            const payload = {
+                title: title,
+                content: content,
+                youtube: youtube,
+                timestamp: window.editingNewsId ? window.globalNewsData.find(n => n.id === window.editingNewsId).timestamp : Date.now(),
+                author: window.currentUser?.email || 'Admin'
+            };
+            if (window.tempNewsImage) payload.image = window.tempNewsImage;
+
+            if (window.editingNewsId) {
+                window.update(window.ref(window.db, `news/${window.editingNewsId}`), payload).then(() => {
+                    loadingOverlay.style.display = 'none'; window.closeFormModal('news');
+                });
+            } else {
+                window.push(window.ref(window.db, 'news'), payload).then(() => {
+                    loadingOverlay.style.display = 'none'; window.closeFormModal('news');
+                });
+            }
+        };
+
+        window.deleteNews = function(id) {
+            window.showModal({ title: 'ยืนยันการลบข่าว', message: 'คุณแน่ใจหรือไม่ที่จะลบข่าวสารนี้ออกจากระบบ?', showCancel: true,
+                onOk: () => { window.remove(window.ref(window.db, `news/${id}`)); }
+            });
+        };
+
+        window.renderAdminNewsList = function() {
+            const list = document.getElementById('admin-news-list');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            if (window.globalNewsData.length === 0) {
+                list.innerHTML = '<li style="justify-content: center; color: var(--text-muted); background: transparent; border: none; box-shadow: none;">ไม่มีข่าวสารในระบบ</li>';
+                return;
+            }
+
+            window.globalNewsData.forEach(news => {
+                const dateStr = new Date(news.timestamp).toLocaleDateString('th-TH');
+                const li = document.createElement('li');
+                li.style.flexDirection = 'row';
+                li.style.marginBottom = '8px';
+                li.innerHTML = `
+                    <div style="flex: 1; overflow: hidden; padding-right: 10px;">
+                        <strong style="color: var(--primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px;">${news.title}</strong>
+                        <span style="font-size: 12px; color: var(--text-muted);">📅 ${dateStr}</span>
+                    </div>
+                    <div class="action-buttons" style="flex-direction: row; margin-right: 0; align-items: center;">
+                        <button class="edit-btn" onclick="window.openNewsModal('${news.id}')" title="แก้ไข">✎</button>
+                        <button class="delete-btn" onclick="window.deleteNews('${news.id}')" title="ลบ">×</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
         };
 
         // --- 8. Render UI functions ---
