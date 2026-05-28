@@ -53,7 +53,13 @@
         window.signInWithPopup = signInWithPopup;
         window.signInAnonymously = signInAnonymously;
 
-        window.initAuthListener();
+        // เรียก Listener หลังจากที่โหลดโมดูลเสร็จ
+        if (typeof window.initAuthListener === 'function') {
+            window.initAuthListener();
+        } else {
+            // กรณีที่ script ด้านล่างยังไม่พร้อม ให้รอสักครู่แล้วเรียก
+            setTimeout(() => { if (typeof window.initAuthListener === 'function') window.initAuthListener(); }, 100);
+        }
     </script>
 
     <style>
@@ -127,21 +133,27 @@
         .account-card.custom-stock { background: linear-gradient(135deg, #8e44ad, #9b59b6); }
         .account-card.custom-customer { background: linear-gradient(135deg, #1abc9c, #16a085); }
         .account-card.custom-appointment { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .account-card.custom-order { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+        .account-card.custom-partner { background: linear-gradient(135deg, #2980b9, #3498db); }
         
         /* Add Banner Styles (ปุ่มสร้างบัญชีแบบใหม่) */
         .add-banner { background: transparent; padding: 20px; border-radius: 12px; cursor: pointer; transition: all 0.2s; text-align: left; }
         .add-banner:active { transform: scale(0.98); }
         .add-banner h3 { margin: 0 0 5px 0; font-size: 18px; display: flex; align-items: center; }
         .add-banner p { margin: 0; font-size: 14px; opacity: 0.8; }
+        
         .add-finance { border: 2px dashed var(--primary); }
         .add-finance h3, .add-finance p { color: var(--primary); }
         .add-finance:hover { background: rgba(52, 152, 219, 0.05); }
+        
         .add-stock { border: 2px dashed #8e44ad; }
         .add-stock h3, .add-stock p { color: #8e44ad; }
         .add-stock:hover { background: rgba(142, 68, 173, 0.05); }
+        
         .add-customer { border: 2px dashed #1abc9c; }
         .add-customer h3, .add-customer p { color: #1abc9c; }
         .add-customer:hover { background: rgba(26, 188, 156, 0.05); }
+        
         .add-appointment { border: 2px dashed #e67e22; }
         .add-appointment h3, .add-appointment p { color: #e67e22; }
         .add-appointment:hover { background: rgba(230, 126, 34, 0.05); }
@@ -208,6 +220,9 @@
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; }
         .status-badge.pending { background: #f39c12; color: white; }
         .status-badge.done { background: #27ae60; color: white; }
+        .status-badge.ordered { background: #e74c3c; color: white; } /* สำหรับสั่งของ */
+        .status-badge.order-pending { background: #e74c3c; color: white; } /* เพิ่งซื้อ */
+        .status-badge.order-assembling { background: #f39c12; color: white; } /* รอประกอบ */
 
         /* Custom Modal Styles (Alerts/Prompts) */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
@@ -286,10 +301,9 @@
     <div id="auth-screen" class="container" style="display: none;">
         <div class="banner">
             <h1>💰 Smart Manager</h1>
-            <p>จัดการเงิน, สต็อก, ลูกค้า และนัดหมายในที่เดียว</p>
+            <p>จัดการเงิน, สต็อก, ลูกค้า, นัดหมาย และพาร์ทเนอร์ในที่เดียว</p>
         </div>
 
-        <!-- กล่องสำหรับ Android / PC (กดปุ่มแล้วเด้งติดตั้งเลย) -->
         <div id="pwa-install-button-container">
             <span style="font-size: 24px; display: block; margin-bottom: 5px;">📲</span>
             <strong>ติดตั้งแอปลงในเครื่อง</strong><br>
@@ -299,7 +313,6 @@
             </button>
         </div>
 
-        <!-- Banner แนะนำการติดตั้งเป็นแอป (สำหรับ iOS เท่านั้น เพราะ Apple บล็อกปุ่มกดอัตโนมัติ) -->
         <div id="pwa-install-banner">
             <span style="font-size: 24px; display: block; margin-bottom: 5px;">🍏</span>
             <strong>ติดตั้งแอปลงบน iPhone/iPad</strong><br>
@@ -309,7 +322,6 @@
             </span>
         </div>
 
-        <!-- ฟอร์มเข้าสู่ระบบ -->
         <div id="login-section">
             <h3 style="margin-top: 0; text-align: left;">เข้าสู่ระบบ</h3>
             <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
@@ -338,7 +350,6 @@
             <button type="button" class="btn-admin" style="margin-top: 25px;" onclick="handleAdminLogin()">🔑 ผู้ดูแลระบบ (Admin)</button>
         </div>
 
-        <!-- ฟอร์มสมัครสมาชิก -->
         <div id="signup-section" style="display: none;">
             <h3 style="margin-top: 0; text-align: left;">สร้างบัญชีใหม่</h3>
             <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
@@ -387,7 +398,6 @@
             <!-- สร้างการ์ดผ่าน JS -->
         </div>
 
-        <!-- ปุ่มเพิ่มบัญชีแบบแบนเนอร์ (ทุกคนใช้งานได้) -->
         <div id="dashboard-add-buttons" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
             <div class="add-banner add-finance" onclick="handleCreateAccount('finance')">
                 <h3><span style="font-size: 22px; margin-right: 8px;">+</span> 💳 เพิ่มบัญชีเงิน</h3>
@@ -441,7 +451,6 @@
             </div>
         </div>
 
-        <!-- ปุ่มสำหรับเปิดโมเดลเพิ่มรายการ -->
         <button class="btn-submit" style="width: 100%; margin-bottom: 20px; padding: 14px; font-size: 16px;" onclick="openFormModal('finance')">
             <span style="font-size: 18px; margin-right: 5px;">+</span> เพิ่มรายการใหม่
         </button>
@@ -467,9 +476,7 @@
                 สรุปสินค้าคงเหลือในคลัง
                 <button id="btn-delete-account-stock" class="logout-btn" style="background: var(--minus); padding: 6px 10px; font-size: 12px; display: none;" onclick="deleteCurrentAccount()">🗑️ ลบบัญชี</button>
             </h4>
-            <div id="stock-summary" class="summary-box-wrapper">
-                <!-- Stock Summary Items -->
-            </div>
+            <div id="stock-summary" class="summary-box-wrapper"></div>
         </div>
 
         <button class="btn-submit" style="background: #8e44ad; width: 100%; margin-bottom: 20px; padding: 14px; font-size: 16px;" onclick="openFormModal('stock')">
@@ -544,6 +551,76 @@
         <h3 style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 0;">รายการนัดหมาย</h3>
         <ul id="appointment-list"></ul>
     </div>
+
+    <!-- =========================================
+         หน้าหลัก (5. ระบบรายการสั่งของ) 
+         ========================================= -->
+    <div id="order-screen" class="container" style="display: none;">
+        <div class="header-top">
+            <button class="logout-btn" style="background: #c0392b;" onclick="backToDashboard()">&#8592; กลับ</button>
+            <h2 style="flex: 1; text-align: center; margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <span id="order-account-name">บัญชีสั่งของ</span>
+            </h2>
+            <button class="logout-btn" onclick="handleLogout()">ออก</button>
+        </div>
+        
+        <div class="balance-container" style="margin-top: 20px;">
+            <h4 style="margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                สถานะการสั่งของ
+                <button id="btn-delete-account-order" class="logout-btn" style="background: var(--minus); padding: 6px 10px; font-size: 12px; display: none;" onclick="deleteCurrentAccount()">🗑️ ลบบัญชี</button>
+            </h4>
+            <div class="summary-box-wrapper">
+                <div class="stock-summary-box">
+                    <div class="title">เพิ่งซื้อ</div>
+                    <div class="qty" id="order-pending" style="color: #e74c3c;">0</div>
+                </div>
+                <div class="stock-summary-box">
+                    <div class="title">รอประกอบ</div>
+                    <div class="qty" id="order-assembling" style="color: #f39c12;">0</div>
+                </div>
+                <div class="stock-summary-box">
+                    <div class="title">ส่งเรียบร้อย</div>
+                    <div class="qty" id="order-done" style="color: #27ae60;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-submit" style="background: #e74c3c; width: 100%; margin-bottom: 20px; padding: 14px; font-size: 16px;" onclick="openFormModal('order')">
+            <span style="font-size: 18px; margin-right: 5px;">+</span> เพิ่มรายการสั่งของ
+        </button>
+
+        <h3 style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 0;">รายการที่สั่งซื้อ</h3>
+        <ul id="order-list"></ul>
+    </div>
+
+    <!-- =========================================
+         หน้าหลัก (6. ระบบพาร์ทเนอร์/เครือข่าย)
+         ========================================= -->
+    <div id="partner-screen" class="container" style="display: none;">
+        <div class="header-top">
+            <button class="logout-btn" style="background: #2980b9;" onclick="backToDashboard()">&#8592; กลับ</button>
+            <h2 style="flex: 1; text-align: center; margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <span id="partner-account-name">บัญชีพาร์ทเนอร์</span>
+            </h2>
+            <button class="logout-btn" onclick="handleLogout()">ออก</button>
+        </div>
+        
+        <div class="balance-container" style="margin-top: 20px;">
+            <h4>จำนวนพาร์ทเนอร์/องค์กร</h4>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 5px;">
+                <h1 id="partner-count" style="color: #2980b9; margin: 0;">0 องค์กร</h1>
+                <button id="btn-delete-account-partner" class="logout-btn" style="background: var(--minus); padding: 6px 10px; font-size: 12px; display: none;" onclick="deleteCurrentAccount()">🗑️ ลบบัญชี</button>
+            </div>
+        </div>
+
+        <button class="btn-submit" style="background: #3498db; width: 100%; margin-bottom: 20px; padding: 14px; font-size: 16px;" onclick="openFormModal('partner')">
+            <span style="font-size: 18px; margin-right: 5px;">+</span> เพิ่มข้อมูลพาร์ทเนอร์
+        </button>
+
+        <h3 style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 0;">รายชื่อพาร์ทเนอร์/เครือข่าย</h3>
+        <ul id="partner-list"></ul>
+    </div>
+
 
     <!-- =========================================
          หน้า Admin (ผู้ดูแลระบบ) 
@@ -688,6 +765,75 @@
         </div>
     </div>
 
+    <!-- Modal: ระบบสั่งของ -->
+    <div id="order-modal" class="form-modal-overlay">
+        <div class="form-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="order-form-title" style="margin: 0; font-size: 20px; border: none; padding: 0;">เพิ่มรายการสั่งของ</h3>
+                <button type="button" class="form-modal-close" onclick="closeFormModal('order')">&times;</button>
+            </div>
+            <form id="order-form" onsubmit="handleTransaction(event)">
+                <label for="order-text">ชื่ออุปกรณ์ / อะไหล่ / ของที่สั่ง</label>
+                <input type="text" id="order-text" placeholder="เช่น เซนเซอร์ DHT11, บอร์ด ESP32..." required />
+
+                <label for="order-amount">จำนวน (ชิ้น/ชุด)</label>
+                <input type="number" id="order-amount" placeholder="ระบุจำนวน..." required min="1" step="1" />
+
+                <label for="order-total-price">ยอดรวม (บาท)</label>
+                <input type="number" id="order-total-price" placeholder="ระบุยอดรวมราคา..." step="0.01" required />
+
+                <label for="order-customer-name">ชื่อ-ที่อยู่ลูกค้า</label>
+                <textarea id="order-customer-name" placeholder="ระบุชื่อและที่อยู่สำหรับจัดส่ง..."></textarea>
+
+                <label for="order-phone">เบอร์โทรศัพท์ (ถ้ามี)</label>
+                <input type="tel" id="order-phone" placeholder="08X-XXX-XXXX" />
+
+                <label for="order-status">สถานะ</label>
+                <select id="order-status">
+                    <option value="pending">เพิ่งซื้อ</option>
+                    <option value="assembling">รอประกอบ</option>
+                    <option value="done">ส่งเรียบร้อย</option>
+                </select>
+
+                <div class="form-actions">
+                    <button type="submit" id="order-submit-btn" class="btn-submit" style="background: #e74c3c;">บันทึกออเดอร์</button>
+                    <button type="button" class="btn-cancel" style="display: block;" onclick="closeFormModal('order')">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: ระบบพาร์ทเนอร์ -->
+    <div id="partner-modal" class="form-modal-overlay">
+        <div class="form-modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="partner-form-title" style="margin: 0; font-size: 20px; border: none; padding: 0;">เพิ่มข้อมูลพาร์ทเนอร์</h3>
+                <button type="button" class="form-modal-close" onclick="closeFormModal('partner')">&times;</button>
+            </div>
+            <form id="partner-form" onsubmit="handleTransaction(event)">
+                <label for="partner-text">ชื่อโรงเรียน / องค์กร / พาร์ทเนอร์</label>
+                <input type="text" id="partner-text" placeholder="เช่น โรงเรียน ก., บริษัท ข...." required />
+
+                <label for="partner-contact">ชื่อผู้ติดต่อหลัก (ถ้ามี)</label>
+                <input type="text" id="partner-contact" placeholder="เช่น อ.สมชาย, คุณสมหญิง..." />
+
+                <label for="partner-phone">เบอร์โทรศัพท์</label>
+                <input type="tel" id="partner-phone" placeholder="08X-XXX-XXXX" />
+
+                <label for="partner-province">จังหวัด</label>
+                <input type="text" id="partner-province" placeholder="เช่น กรุงเทพมหานคร, เชียงใหม่..." />
+
+                <label for="partner-detail">รายละเอียดเพิ่มเติม (ที่อยู่, โครงการที่ทำร่วมกัน)</label>
+                <textarea id="partner-detail" placeholder="ระบุข้อมูลที่จำเป็น..."></textarea>
+
+                <div class="form-actions">
+                    <button type="submit" id="partner-submit-btn" class="btn-submit" style="background: #3498db;">บันทึกข้อมูล</button>
+                    <button type="button" class="btn-cancel" style="display: block;" onclick="closeFormModal('partner')">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         // --- ตรวจสอบการใช้งานบนมือถือ & PWA Install Logic ---
@@ -717,7 +863,7 @@
             document.getElementById('pwa-install-banner').style.display = 'none';
         });
 
-        // --- 1.5 Custom Modal Logic ---
+        // --- Custom Modal Logic ---
         window.showModal = function({ title, message, showInput = false, inputType = 'text', showCancel = false, onOk = null }) {
             const overlay = document.getElementById('custom-modal-overlay');
             const titleEl = document.getElementById('modal-title');
@@ -759,13 +905,15 @@
             cancelEdit(); 
         };
 
-        // --- 2. ตัวแปร UI และ Data ---
+        // --- ตัวแปร UI และ Data ---
         const authScreen = document.getElementById('auth-screen');
         const dashboardScreen = document.getElementById('dashboard-screen');
         const appScreen = document.getElementById('app-screen');
         const stockScreen = document.getElementById('stock-screen');
         const customerScreen = document.getElementById('customer-screen');
         const appointmentScreen = document.getElementById('appointment-screen');
+        const orderScreen = document.getElementById('order-screen');
+        const partnerScreen = document.getElementById('partner-screen');
         const adminScreen = document.getElementById('admin-screen');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loginSection = document.getElementById('login-section');
@@ -774,7 +922,7 @@
         let currentUser = null;
         let isGuestMode = false; // ตัวแปรเช็คว่าเป็นโหมดผู้เยี่ยมชมหรือไม่
         let currentAccountId = null; 
-        let currentAccountType = 'finance'; // 'finance', 'stock', 'customer', 'appointment'
+        let currentAccountType = 'finance'; // 'finance', 'stock', 'customer', 'appointment', 'order', 'partner'
         let transactions = [];
         let editItemId = null;
         let unsubscribeDB = null; 
@@ -789,6 +937,8 @@
             if(stockScreen) stockScreen.style.display = 'none';
             if(customerScreen) customerScreen.style.display = 'none'; 
             if(appointmentScreen) appointmentScreen.style.display = 'none';
+            if(orderScreen) orderScreen.style.display = 'none';
+            if(partnerScreen) partnerScreen.style.display = 'none';
             if(adminScreen) adminScreen.style.display = 'none';
         }
 
@@ -834,7 +984,7 @@
             window.update(userProfileRef, payload).catch(e => console.log('Update profile error:', e));
         }
 
-        // --- 3. ระบบ Authentication ---
+        // --- ระบบ Authentication ---
         window.toggleAuthMode = function() {
             if (loginSection.style.display === 'none') { loginSection.style.display = 'block'; signupSection.style.display = 'none';
             } else { loginSection.style.display = 'none'; signupSection.style.display = 'block'; }
@@ -872,7 +1022,7 @@
 
         window.handleGuestLogin = function() {
             loadingOverlay.style.display = 'flex';
-            // ไม่ใช้ Firebase Auth ให้จำลองการล็อกอินบนเครื่องเลย
+            // จำลองการล็อกอินบนเครื่อง
             setTimeout(() => {
                 isGuestMode = true;
                 currentUser = { isAnonymous: true, uid: 'guest_local' };
@@ -914,11 +1064,11 @@
             });
         };
 
-        // --- 4. ระบบ Dashboard ---
+        // --- ระบบ Dashboard ---
         window.loadAccounts = function() {
             if (!currentUser) return;
             
-            // ถ้าระบบตรวจพบว่าเป็นโหมดผู้เยี่ยมชม ให้จำลองหน้าบัญชีโดยไม่เรียก Firebase
+            // โหมดผู้เยี่ยมชม
             if (isGuestMode) {
                 const accountsContainer = document.getElementById('accounts-list');
                 accountsContainer.innerHTML = `
@@ -926,10 +1076,17 @@
                         <h3>💳 บัญชีทดลอง (ผู้เยี่ยมชม)</h3>
                         <p>บัญชีเงินเก็บ (บันทึกข้อมูลเฉพาะในเครื่องนี้เท่านั้น)</p>
                     </div>
+                    <div class="account-card custom-order" onclick="openAccount('default_order', '🛒 รายการสั่งของ', 'order')">
+                        <h3>🛒 รายการสั่งของ</h3>
+                        <p>บันทึกและติดตามรายการสั่งซื้ออุปกรณ์ อะไหล่ หรือวัตถุดิบ</p>
+                    </div>
+                    <div class="account-card custom-partner" onclick="openAccount('default_partner', '🤝 ลูกค้าพาร์ทเนอร์', 'partner')">
+                        <h3>🤝 ลูกค้าพาร์ทเนอร์</h3>
+                        <p>จัดการข้อมูลพาร์ทเนอร์ โรงเรียน หรือเครือข่ายธุรกิจ</p>
+                    </div>
                 `;
                 
                 document.getElementById('dashboard-add-buttons').style.display = 'none';
-                
                 document.querySelectorAll('.badge-pro').forEach(el => el.style.display = 'none');
                 return;
             }
@@ -944,23 +1101,33 @@
                         <h3>💳 บัญชีส่วนตัว</h3>
                         <p>บัญชีเงินเก็บและค่าใช้จ่ายประจำวัน</p>
                     </div>
+                    <div class="account-card custom-order" onclick="openAccount('default_order', 'รายการสั่งของ', 'order')">
+                        <h3>🛒 รายการสั่งของ</h3>
+                        <p>บันทึกและติดตามรายการสั่งซื้ออุปกรณ์ อะไหล่ หรือวัตถุดิบ</p>
+                    </div>
+                    <div class="account-card custom-partner" onclick="openAccount('default_partner', 'ลูกค้าพาร์ทเนอร์', 'partner')">
+                        <h3>🤝 ลูกค้าพาร์ทเนอร์</h3>
+                        <p>จัดการข้อมูลพาร์ทเนอร์ โรงเรียน หรือเครือข่ายธุรกิจ</p>
+                    </div>
                 `;
 
                 const data = snapshot.val();
-                
-                // ตัวแปรเช็คว่าสร้างบัญชีอะไรไปแล้วบ้าง
-                let createdTypes = { finance: 0, stock: 0, customer: 0, appointment: 0 };
+                let createdTypes = { finance: 0, stock: 0, customer: 0, appointment: 0, order: 0, partner: 0 };
 
                 if (data) {
                     for (let key in data) {
                         const acc = data[key]; const accType = acc.type || 'finance';
-                        createdTypes[accType]++; // นับจำนวนบัญชีแต่ละประเภท
+                        if (createdTypes[accType] !== undefined) {
+                            createdTypes[accType]++; 
+                        }
                         
                         let icon = '📂'; let typeLabel = 'บัญชีเพิ่มเติม'; let cardClass = 'account-card custom';
                         
                         if (accType === 'stock') { icon = '📦'; typeLabel = 'บัญชีสต็อกสินค้า'; cardClass = 'account-card custom-stock'; }
                         else if (accType === 'customer') { icon = '👥'; typeLabel = 'บัญชีฐานข้อมูลลูกค้า'; cardClass = 'account-card custom-customer'; }
                         else if (accType === 'appointment') { icon = '📅'; typeLabel = 'บัญชีตารางนัดหมาย'; cardClass = 'account-card custom-appointment'; }
+                        else if (accType === 'order') { icon = '🛒'; typeLabel = 'บัญชีรายการสั่งของ'; cardClass = 'account-card custom-order'; }
+                        else if (accType === 'partner') { icon = '🤝'; typeLabel = 'บัญชีลูกค้าพาร์ทเนอร์'; cardClass = 'account-card custom-partner'; }
 
                         accountsContainer.innerHTML += `
                             <div class="${cardClass}" onclick="openAccount('${key}', '${acc.name}', '${accType}')">
@@ -971,7 +1138,6 @@
                     }
                 }
                 
-                // ซ่อนปุ่มแบนเนอร์หากมีการสร้างบัญชีประเภทนั้นไปแล้ว
                 const btnFinance = document.querySelector('.add-finance');
                 const btnStock = document.querySelector('.add-stock');
                 const btnCustomer = document.querySelector('.add-customer');
@@ -989,7 +1155,6 @@
                 
                 window.currentUserIsPro = profile.isPro || false;
                 
-                // อัปเดตชื่อผู้ใช้งาน
                 let displayName = profile.name || profile.email || 'ผู้ใช้งาน';
                 if (isGuestMode) displayName = 'ผู้เยี่ยมชม (Guest)';
                 const nameEl = document.getElementById('display-user-name');
@@ -1002,12 +1167,13 @@
         window.openAccount = function(id, name, type = 'finance') {
             currentAccountId = id; currentAccountType = type; hideAllScreens();
 
-            // จัดการการแสดงผลของปุ่มลบบัญชี (ซ่อนหากเป็นบัญชีหลัก 'default')
-            const showDel = id !== 'default';
+            const showDel = (id !== 'default' && id !== 'default_order' && id !== 'default_partner');
             const delFin = document.getElementById('btn-delete-account-finance'); if(delFin) delFin.style.display = showDel ? 'inline-block' : 'none';
             const delStk = document.getElementById('btn-delete-account-stock'); if(delStk) delStk.style.display = showDel ? 'inline-block' : 'none';
             const delCus = document.getElementById('btn-delete-account-customer'); if(delCus) delCus.style.display = showDel ? 'inline-block' : 'none';
             const delApp = document.getElementById('btn-delete-account-appointment'); if(delApp) delApp.style.display = showDel ? 'inline-block' : 'none';
+            const delOrd = document.getElementById('btn-delete-account-order'); if(delOrd) delOrd.style.display = showDel ? 'inline-block' : 'none';
+            const delPtn = document.getElementById('btn-delete-account-partner'); if(delPtn) delPtn.style.display = showDel ? 'inline-block' : 'none';
 
             if (currentAccountType === 'stock') {
                 document.getElementById('stock-account-name').innerText = name; 
@@ -1018,6 +1184,12 @@
             } else if (currentAccountType === 'appointment') {
                 document.getElementById('appointment-account-name').innerText = name; 
                 if(appointmentScreen) appointmentScreen.style.display = 'block';
+            } else if (currentAccountType === 'order') {
+                document.getElementById('order-account-name').innerText = name; 
+                if(orderScreen) orderScreen.style.display = 'block';
+            } else if (currentAccountType === 'partner') {
+                document.getElementById('partner-account-name').innerText = name; 
+                if(partnerScreen) partnerScreen.style.display = 'block';
             } else {
                 document.getElementById('app-account-name').innerText = name; 
                 if(appScreen) appScreen.style.display = 'block';
@@ -1034,7 +1206,7 @@
         };
 
         window.deleteCurrentAccount = function() {
-            if (currentAccountId === 'default') return;
+            if (currentAccountId === 'default' || currentAccountId === 'default_order' || currentAccountId === 'default_partner') return;
             window.showModal({
                 title: 'ยืนยันการลบบัญชี',
                 message: 'คุณแน่ใจหรือไม่ที่จะลบบัญชีนี้ พร้อมข้อมูลทั้งหมดที่อยู่ด้านใน?\n(การดำเนินการนี้ไม่สามารถกู้คืนได้)',
@@ -1048,9 +1220,7 @@
             });
         };
 
-        // ฟังก์ชันสร้างบัญชี
         window.handleCreateAccount = function(type) {
-            // ตรวจสอบว่าเป็นผู้เยี่ยมชม (Guest) หรือไม่
             if (currentUser && currentUser.isAnonymous) {
                 window.showModal({
                     title: 'จำกัดสิทธิ์ผู้เยี่ยมชม 🔒', 
@@ -1063,6 +1233,8 @@
             if (type === 'stock') { title = 'สร้างบัญชีสต็อก'; msg = 'ชื่อบัญชีสต็อก (เช่น สต็อกหน้าร้าน):'; }
             else if (type === 'customer') { title = 'สร้างบัญชีลูกค้า'; msg = 'ชื่อบัญชีฐานข้อมูล (เช่น ลูกค้าออนไลน์):'; }
             else if (type === 'appointment') { title = 'สร้างบัญชีนัดหมาย'; msg = 'ชื่อบัญชีตารางนัด (เช่น คิวช่าง, คลินิก):'; }
+            else if (type === 'order') { title = 'สร้างบัญชีสั่งของ'; msg = 'ชื่อบัญชีสั่งของ (เช่น สั่งอุปกรณ์เซนเซอร์/มอเตอร์):'; }
+            else if (type === 'partner') { title = 'สร้างบัญชีพาร์ทเนอร์'; msg = 'ชื่อบัญชีพาร์ทเนอร์ (เช่น โรงเรียนเครือข่าย):'; }
             else { title = 'สร้างบัญชีเงิน'; msg = 'ชื่อบัญชีการเงิน (เช่น บัญชีธุรกิจ):'; }
             
             window.showModal({ title: title, message: msg, showInput: true, inputType: 'text', showCancel: true,
@@ -1074,7 +1246,7 @@
             });
         };
 
-        // --- 5. ระบบ Admin ---
+        // --- ระบบ Admin ---
         window.handleAdminLogin = function() {
             window.showModal({ title: 'เข้าสู่โหมด Admin', message: 'รหัสผ่านผู้ดูแลระบบ:', showInput: true, inputType: 'password', showCancel: true,
                 onOk: (pin) => {
@@ -1158,10 +1330,15 @@
                         if (data[uid].accounts) {
                             for (let accId in data[uid].accounts) {
                                 if (data[uid].accounts[accId].transactions) {
-                                    const accType = data[uid].accounts[accId].type || 'finance';
+                                    let accType = data[uid].accounts[accId].type || 'finance';
+                                    let accName = data[uid].accounts[accId].name || 'บัญชีเพิ่มเติม';
+                                    
+                                    if (accId === 'default_order') { accType = 'order'; accName = 'รายการสั่งของ'; }
+                                    if (accId === 'default_partner') { accType = 'partner'; accName = 'ลูกค้าพาร์ทเนอร์'; }
+
                                     for (let tid in data[uid].accounts[accId].transactions) {
                                         const t = data[uid].accounts[accId].transactions[tid];
-                                        t.id = tid; t.uid = uid; t.email = userEmail; t.source = data[uid].accounts[accId].name; t.type = accType;
+                                        t.id = tid; t.uid = uid; t.email = userEmail; t.source = accName; t.type = accType;
                                         allSystemTransactions.push(t); 
                                         if (accType === 'finance') totalFinanceBalance += (t.amount || 0);
                                     }
@@ -1193,6 +1370,14 @@
                         } else if (t.type === 'appointment') {
                             sourcePrefix = '📅'; itemClass = 'neutral'; 
                             displayString = t.status === 'done' ? '✅ เสร็จสิ้น' : '⏳ รอการจัด';
+                        } else if (t.type === 'order') {
+                            sourcePrefix = '🛒'; itemClass = 'neutral'; 
+                            let statusTextAdmin = 'เพิ่งซื้อ';
+                            if (t.status === 'assembling') statusTextAdmin = 'รอประกอบ';
+                            if (t.status === 'done') statusTextAdmin = 'ส่งเรียบร้อย';
+                            displayString = `${t.amount || 0} ชิ้น (${statusTextAdmin})`;
+                        } else if (t.type === 'partner') {
+                            sourcePrefix = '🤝'; itemClass = 'neutral'; displayString = t.phone || 'ข้อมูลพาร์ทเนอร์';
                         }
 
                         item.classList.add(itemClass);
@@ -1216,7 +1401,7 @@
             });
         };
 
-        // --- 6. ระบบ App หลัก และการจัดการข้อมูล ---
+        // --- ระบบ App หลัก และการจัดการข้อมูล ---
         function loadUserData(accountId) {
             if (!currentUser) return;
             
@@ -1229,6 +1414,8 @@
                     if (currentAccountType === 'stock') { renderStockApp(); updateStockQuickTags(); } 
                     else if (currentAccountType === 'customer') { renderCustomerApp(); }
                     else if (currentAccountType === 'appointment') { renderAppointmentApp(); }
+                    else if (currentAccountType === 'order') { if (typeof renderOrderApp === 'function') renderOrderApp(); }
+                    else if (currentAccountType === 'partner') { if (typeof renderPartnerApp === 'function') renderPartnerApp(); }
                     else { renderApp(); updateQuickTags(); }
                 }, 300);
                 return;
@@ -1249,6 +1436,8 @@
                 if (currentAccountType === 'stock') { renderStockApp(); updateStockQuickTags(); } 
                 else if (currentAccountType === 'customer') { renderCustomerApp(); }
                 else if (currentAccountType === 'appointment') { renderAppointmentApp(); }
+                else if (currentAccountType === 'order') { if (typeof renderOrderApp === 'function') renderOrderApp(); }
+                else if (currentAccountType === 'partner') { if (typeof renderPartnerApp === 'function') renderPartnerApp(); }
                 else { renderApp(); updateQuickTags(); }
             });
         }
@@ -1257,17 +1446,16 @@
             e.preventDefault();
             if (!currentUser || !currentAccountId) return;
             
-            // --- ระบบตรวจสอบโควต้าการเพิ่มรายการสำหรับสมาชิกทั่วไปและ Guest ---
             if (!window.currentUserIsPro && editItemId === null) {
-                const limits = { finance: 30, stock: 10, customer: 3, appointment: 2 };
-                const limitNames = { finance: 'รายการบัญชีเงิน', stock: 'รายการสต็อก', customer: 'รายชื่อลูกค้า', appointment: 'รายการนัดหมาย' };
+                const limits = { finance: 30, stock: 10, customer: 3, appointment: 2, order: 15, partner: 5 };
+                const limitNames = { finance: 'รายการบัญชีเงิน', stock: 'รายการสต็อก', customer: 'รายชื่อลูกค้า', appointment: 'รายการนัดหมาย', order: 'รายการสั่งของ', partner: 'ลูกค้าพาร์ทเนอร์' };
                 
                 if (transactions.length >= limits[currentAccountType]) {
                     window.showModal({
                         title: 'จำกัดโควต้า 🔒', 
                         message: `คุณเพิ่ม${limitNames[currentAccountType]}ครบกำหนดแล้ว (${limits[currentAccountType]} รายการ)\n\nสิทธิ์ในการเพิ่มรายการแบบไม่จำกัด สงวนไว้สำหรับผู้ใช้งานระดับ PRO เท่านั้น\nกรุณาติดต่อแอดมินเพื่ออัปเกรดบัญชีของคุณ\n\n📞 ติดต่อ อ.วุฒิ 0847999639`
                     });
-                    return; // หยุดการทำงาน ไม่ให้บันทึกข้อมูล
+                    return; 
                 }
             }
 
@@ -1276,13 +1464,11 @@
             if (currentAccountType === 'finance') {
                 const textEl = document.getElementById('text'); const amountEl = document.getElementById('amount'); const typeEl = document.getElementById('type');
                 if (textEl.value.trim() === '' || amountEl.value.trim() === '') return;
-                payload.text = textEl.value.trim();
-                payload.amount = typeEl.value === 'minus' ? -Math.abs(amountEl.value) : Math.abs(amountEl.value);
+                payload.text = textEl.value.trim(); payload.amount = typeEl.value === 'minus' ? -Math.abs(amountEl.value) : Math.abs(amountEl.value);
             } else if (currentAccountType === 'stock') {
                 const textEl = document.getElementById('stock-text'); const amountEl = document.getElementById('stock-amount'); const typeEl = document.getElementById('stock-type');
                 if (textEl.value.trim() === '' || amountEl.value.trim() === '') return;
-                payload.text = textEl.value.trim();
-                payload.amount = typeEl.value === 'minus' ? -Math.abs(amountEl.value) : Math.abs(amountEl.value);
+                payload.text = textEl.value.trim(); payload.amount = typeEl.value === 'minus' ? -Math.abs(amountEl.value) : Math.abs(amountEl.value);
             } else if (currentAccountType === 'customer') {
                 const textEl = document.getElementById('customer-text'); const phoneEl = document.getElementById('customer-phone'); const detailEl = document.getElementById('customer-detail');
                 if (textEl.value.trim() === '') return;
@@ -1291,6 +1477,20 @@
                 const textEl = document.getElementById('appointment-text'); const dateEl = document.getElementById('appointment-date'); const statusEl = document.getElementById('appointment-status');
                 if (textEl.value.trim() === '' || dateEl.value === '') return;
                 payload.text = textEl.value.trim(); payload.date = dateEl.value; payload.status = statusEl.value;
+            } else if (currentAccountType === 'order') {
+                const textEl = document.getElementById('order-text'); const amountEl = document.getElementById('order-amount');
+                const priceEl = document.getElementById('order-total-price'); const customerEl = document.getElementById('order-customer-name');
+                const phoneEl = document.getElementById('order-phone'); const statusEl = document.getElementById('order-status');
+                if (textEl.value.trim() === '' || amountEl.value.trim() === '' || priceEl.value.trim() === '') return;
+                payload.text = textEl.value.trim(); payload.amount = Math.abs(amountEl.value); 
+                payload.price = Math.abs(priceEl.value); payload.customerName = customerEl.value.trim();
+                payload.phone = phoneEl.value.trim(); payload.status = statusEl.value;
+            } else if (currentAccountType === 'partner') {
+                const textEl = document.getElementById('partner-text'); const contactEl = document.getElementById('partner-contact'); const phoneEl = document.getElementById('partner-phone'); const detailEl = document.getElementById('partner-detail');
+                const provinceEl = document.getElementById('partner-province');
+                if (textEl.value.trim() === '') return;
+                payload.text = textEl.value.trim(); payload.contact = contactEl.value.trim(); payload.phone = phoneEl.value.trim(); payload.detail = detailEl.value.trim();
+                payload.province = provinceEl.value.trim();
             }
 
             // จัดการข้อมูลสำหรับโหมด Guest (ไม่ต้องต่อ Firebase)
@@ -1311,6 +1511,8 @@
                 if (currentAccountType === 'stock') { renderStockApp(); } 
                 else if (currentAccountType === 'customer') { renderCustomerApp(); }
                 else if (currentAccountType === 'appointment') { renderAppointmentApp(); }
+                else if (currentAccountType === 'order') { if (typeof renderOrderApp === 'function') renderOrderApp(); }
+                else if (currentAccountType === 'partner') { if (typeof renderPartnerApp === 'function') renderPartnerApp(); }
                 else { renderApp(); }
                 return;
             }
@@ -1318,14 +1520,10 @@
             const userDbPath = currentAccountId === 'default' ? `users/${currentUser.uid}/transactions` : `users/${currentUser.uid}/accounts/${currentAccountId}/transactions`;
 
             if (editItemId !== null) {
-                payload.timestamp = transactions.find(t => t.id === editItemId).timestamp; // รักษาเวลาเดิม
-                window.update(window.ref(window.db, `${userDbPath}/${editItemId}`), payload);
-                cancelEdit();
-            } else {
-                window.push(window.ref(window.db, userDbPath), payload);
-            }
+                payload.timestamp = transactions.find(t => t.id === editItemId).timestamp; 
+                window.update(window.ref(window.db, `${userDbPath}/${editItemId}`), payload); cancelEdit();
+            } else { window.push(window.ref(window.db, userDbPath), payload); }
             
-            // เคลียร์ฟอร์มและปิดโมเดล
             closeFormModal(currentAccountType);
         };
 
@@ -1333,13 +1531,14 @@
             window.showModal({ title: 'ยืนยันการลบ', message: 'คุณแน่ใจหรือไม่ที่จะลบรายการนี้?', showCancel: true,
                 onOk: () => {
                     if (editItemId === id) cancelEdit();
-                    
                     if (isGuestMode) {
                         transactions = transactions.filter(t => t.id !== id);
                         localStorage.setItem('guest_transactions', JSON.stringify(transactions));
                         if (currentAccountType === 'stock') { renderStockApp(); } 
                         else if (currentAccountType === 'customer') { renderCustomerApp(); }
                         else if (currentAccountType === 'appointment') { renderAppointmentApp(); }
+                        else if (currentAccountType === 'order') { if (typeof renderOrderApp === 'function') renderOrderApp(); }
+                        else if (currentAccountType === 'partner') { if (typeof renderPartnerApp === 'function') renderPartnerApp(); }
                         else { renderApp(); }
                         return;
                     }
@@ -1367,6 +1566,17 @@
                     document.getElementById('appointment-text').value = item.text || ''; document.getElementById('appointment-date').value = item.date || ''; document.getElementById('appointment-status').value = item.status || 'pending';
                     document.getElementById('appointment-form-title').innerText = 'แก้ไขนัดหมาย'; document.getElementById('appointment-submit-btn').innerText = 'บันทึกนัดหมาย';
                     document.getElementById('appointment-submit-btn').style.backgroundColor = 'var(--warning)';
+                } else if (currentAccountType === 'order') {
+                    document.getElementById('order-text').value = item.text || ''; document.getElementById('order-amount').value = item.amount || '';
+                    document.getElementById('order-total-price').value = item.price || ''; document.getElementById('order-customer-name').value = item.customerName || '';
+                    document.getElementById('order-phone').value = item.phone || ''; document.getElementById('order-status').value = item.status || 'pending';
+                    document.getElementById('order-form-title').innerText = 'แก้ไขรายการสั่งของ'; document.getElementById('order-submit-btn').innerText = 'บันทึกรายการ';
+                    document.getElementById('order-submit-btn').style.backgroundColor = 'var(--warning)';
+                } else if (currentAccountType === 'partner') {
+                    document.getElementById('partner-text').value = item.text || ''; document.getElementById('partner-contact').value = item.contact || ''; document.getElementById('partner-phone').value = item.phone || ''; document.getElementById('partner-detail').value = item.detail || '';
+                    document.getElementById('partner-province').value = item.province || '';
+                    document.getElementById('partner-form-title').innerText = 'แก้ไขข้อมูลพาร์ทเนอร์'; document.getElementById('partner-submit-btn').innerText = 'บันทึกข้อมูล';
+                    document.getElementById('partner-submit-btn').style.backgroundColor = 'var(--warning)';
                 } else {
                     document.getElementById('type').value = (item.amount || 0) < 0 ? 'minus' : 'plus'; updateQuickTags();
                     document.getElementById('text').value = item.text || ''; document.getElementById('amount').value = Math.abs(item.amount || 0);
@@ -1374,27 +1584,20 @@
                     document.getElementById('submit-btn').style.backgroundColor = 'var(--warning)';
                 }
                 
-                openFormModal(currentAccountType, true); // สั่งเปิดหน้าต่างโมเดล (true = ข้ามการล้างฟอร์ม)
+                openFormModal(currentAccountType, true); 
             }
         };
 
         window.cancelEdit = function() {
             editItemId = null;
             if (currentAccountType === 'stock') {
-                const form = document.getElementById('stock-form');
-                if (form) form.reset();
-                updateStockQuickTags();
-                const title = document.getElementById('stock-form-title');
-                if (title) title.innerText = 'เพิ่มรายการสินค้า';
-                const btn = document.getElementById('stock-submit-btn');
-                if (btn) { btn.innerText = 'บันทึกสต็อก'; btn.style.backgroundColor = '#8e44ad'; }
+                const form = document.getElementById('stock-form'); if (form) form.reset(); updateStockQuickTags();
+                const title = document.getElementById('stock-form-title'); if (title) title.innerText = 'เพิ่มรายการสินค้า';
+                const btn = document.getElementById('stock-submit-btn'); if (btn) { btn.innerText = 'บันทึกสต็อก'; btn.style.backgroundColor = '#8e44ad'; }
             } else if (currentAccountType === 'customer') {
-                const form = document.getElementById('customer-form');
-                if (form) form.reset();
-                const title = document.getElementById('customer-form-title');
-                if (title) title.innerText = 'เพิ่มรายชื่อลูกค้า';
-                const btn = document.getElementById('customer-submit-btn');
-                if (btn) { btn.innerText = 'บันทึกข้อมูล'; btn.style.backgroundColor = '#1abc9c'; }
+                const form = document.getElementById('customer-form'); if (form) form.reset();
+                const title = document.getElementById('customer-form-title'); if (title) title.innerText = 'เพิ่มรายชื่อลูกค้า';
+                const btn = document.getElementById('customer-submit-btn'); if (btn) { btn.innerText = 'บันทึกข้อมูล'; btn.style.backgroundColor = '#1abc9c'; }
             } else if (currentAccountType === 'appointment') {
                 const form = document.getElementById('appointment-form');
                 if (form) form.reset();
@@ -1402,6 +1605,20 @@
                 if (title) title.innerText = 'เพิ่มนัดหมายใหม่';
                 const btn = document.getElementById('appointment-submit-btn');
                 if (btn) { btn.innerText = 'บันทึกนัดหมาย'; btn.style.backgroundColor = '#e67e22'; }
+            } else if (currentAccountType === 'order') {
+                const form = document.getElementById('order-form');
+                if (form) form.reset();
+                const title = document.getElementById('order-form-title');
+                if (title) title.innerText = 'เพิ่มรายการสั่งของ';
+                const btn = document.getElementById('order-submit-btn');
+                if (btn) { btn.innerText = 'บันทึกออเดอร์'; btn.style.backgroundColor = '#e74c3c'; }
+            } else if (currentAccountType === 'partner') {
+                const form = document.getElementById('partner-form');
+                if (form) form.reset();
+                const title = document.getElementById('partner-form-title');
+                if (title) title.innerText = 'เพิ่มข้อมูลพาร์ทเนอร์';
+                const btn = document.getElementById('partner-submit-btn');
+                if (btn) { btn.innerText = 'บันทึกข้อมูล'; btn.style.backgroundColor = '#3498db'; }
             } else {
                 const form = document.getElementById('app-form');
                 if (form) form.reset();
@@ -1520,6 +1737,84 @@
                         <span style="font-size:13px; color:var(--text-main); margin-top:3px;">📅 ${displayDate}</span>
                     </span>
                     <span class="status-badge ${statusClass}">${statusText}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderOrderApp() {
+            const pendingCount = transactions.filter(t => t.status === 'pending').length;
+            const assemblingCount = transactions.filter(t => t.status === 'assembling').length;
+            const doneCount = transactions.filter(t => t.status === 'done').length;
+            
+            const elPending = document.getElementById('order-pending');
+            const elAssembling = document.getElementById('order-assembling');
+            const elDone = document.getElementById('order-done');
+            if (elPending) elPending.innerText = pendingCount;
+            if (elAssembling) elAssembling.innerText = assemblingCount;
+            if (elDone) elDone.innerText = doneCount;
+
+            const list = document.getElementById('order-list'); 
+            if (!list) return;
+            list.innerHTML = '';
+            
+            transactions.forEach(t => {
+                const isDone = t.status === 'done';
+                let statusClass = 'order-pending';
+                let statusText = '🛒 เพิ่งซื้อ';
+
+                if (t.status === 'assembling') {
+                    statusClass = 'order-assembling';
+                    statusText = '⚙️ รอประกอบ';
+                } else if (t.status === 'done') {
+                    statusClass = 'done';
+                    statusText = '✅ ส่งเรียบร้อย';
+                }
+
+                const li = document.createElement('li'); li.classList.add('neutral');
+                if (isDone) li.style.opacity = '0.7';
+
+                const priceStr = t.price ? `฿${Number(t.price).toLocaleString('th-TH', {minimumFractionDigits: 2})}` : '-';
+
+                li.innerHTML = `
+                    <div class="action-buttons">
+                        <button class="delete-btn" onclick="removeTransaction('${t.id}')" title="ลบ">×</button>
+                        <button class="edit-btn" onclick="startEdit('${t.id}')" title="แก้ไข">✎</button>
+                    </div>
+                    <span class="item-text" style="align-items: flex-start; line-height: 1.4; flex-grow: 1;">
+                        <strong style="color: #c0392b; font-size: 16px;">${t.text} <span style="font-weight: normal; color: var(--text-muted); font-size: 13px;">(x${t.amount || 0})</span></strong>
+                        <span style="font-size:14px; font-weight: bold; color:var(--text-main); margin-top:3px;">ยอดรวม: ${priceStr}</span>
+                        ${t.customerName ? `<span style="font-size:13px; color:var(--text-main); margin-top:3px;">👤 ลูกค้า: ${t.customerName}</span>` : ''}
+                        ${t.phone ? `<span style="font-size:13px; color:var(--text-main); margin-top:2px;">📞 ${t.phone}</span>` : ''}
+                    </span>
+                    <span class="status-badge ${statusClass}" style="margin-left: 8px; align-self: flex-start; white-space: nowrap;">${statusText}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderPartnerApp() {
+            const countEl = document.getElementById('partner-count');
+            if (countEl) countEl.innerText = `${transactions.length} องค์กร`;
+            
+            const list = document.getElementById('partner-list'); 
+            if (!list) return;
+            list.innerHTML = '';
+            
+            transactions.forEach(t => {
+                const li = document.createElement('li'); li.classList.add('neutral');
+                li.innerHTML = `
+                    <div class="action-buttons">
+                        <button class="delete-btn" onclick="removeTransaction('${t.id}')" title="ลบ">×</button>
+                        <button class="edit-btn" onclick="startEdit('${t.id}')" title="แก้ไข">✎</button>
+                    </div>
+                    <span class="item-text" style="align-items: flex-start; line-height: 1.4;">
+                        <strong style="color: #2980b9; font-size: 16px;">${t.text}</strong>
+                        ${t.contact ? `<span style="font-size:13px; color:var(--text-main); margin-top:3px;">👤 ติดต่อ: ${t.contact}</span>` : ''}
+                        <span style="font-size:13px; color:var(--text-muted); margin-top:2px;">📞 ${t.phone || '-'}</span>
+                        ${t.province ? `<span style="font-size:13px; color:var(--text-muted); margin-top:2px;">📍 จังหวัด: ${t.province}</span>` : ''}
+                        ${t.detail ? `<span style="font-size:12px; color:var(--text-muted); margin-top:4px; padding:4px; background:#f0f8ff; border-radius:4px;">${t.detail}</span>` : ''}
+                    </span>
                 `;
                 list.appendChild(li);
             });
